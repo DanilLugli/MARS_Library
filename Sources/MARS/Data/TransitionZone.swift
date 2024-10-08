@@ -15,20 +15,17 @@ class TransitionZone: Codable, Identifiable, Equatable, ObservableObject {
     public var name: String
     public var connection: [Connection]?
 
-    // Implementazione dell'operatore ==
     static func == (lhs: TransitionZone, rhs: TransitionZone) -> Bool {
         return lhs.id == rhs.id &&
                lhs.name == rhs.name &&
-               lhs.connection == rhs.connection // Assicurati che Connection sia conforme a Equatable
+               lhs.connection == rhs.connection
     }
 
-    // Inizializzatore
     init(name: String, connection: [Connection]?) {
         self.name = name
         self.connection = connection
     }
 
-    // Codable support (automatically synthesized)
     enum CodingKeys: String, CodingKey {
         case id
         case name
