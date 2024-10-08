@@ -6,50 +6,73 @@
 //
 
 import Foundation
-import ARKit
 import SceneKit
 import SwiftUI
+import UIKit
 
-public class Room: NamedURL, Codable, Identifiable, ObservableObject, Equatable {
+@available(iOS 13.0, *)
+public class Room: Decodable, Identifiable, ObservableObject, Equatable, Hashable {
     // MARK: - Properties
-    
+
     public let id: UUID
-    public var name: String
-    //public let lastUpdate: Date
-    public var planimetry: SCNViewContainer?
-    public var referenceMarkers: [ReferenceMarker]
-    public var transitionZones: [TransitionZone]
-    public var scene: SCNScene?
-    public var sceneObjects: [SCNNode]?
-    public let roomURL: URL
-    public var color: UIColor
-    
-    public weak var parentFloor: Floor?
+    var name: String
+    var referenceMarkers: [ReferenceMarker]
+    var transitionZones: [TransitionZone]
+    var scene: SCNScene // SceneKit properties will be excluded from decodable
+    var sceneObjects: [SCNNode] // SceneKit properties will be excluded from decodable
+    let roomURL: URL
+    weak var parentFloor: Floor?
     
     // MARK: - Initializer
-    
-    public init(id: UUID = UUID(), name: String, /*lastUpdate: Date,*/ planimetry: SCNViewContainer? = nil, referenceMarkers: [ReferenceMarker], transitionZones: [TransitionZone], scene: SCNScene? = SCNScene(), sceneObjects: [SCNNode]? = nil, roomURL: URL, parentFloor: Floor? = nil) {
+    init(id: UUID = UUID(), name: String, referenceMarkers: [ReferenceMarker], transitionZones: [TransitionZone], scene: SCNScene, sceneObjects: [SCNNode], roomURL: URL, parentFloor: Floor?) {
         self.id = id
         self.name = name
-        self.lastUpdate = lastUpdate
-        self.planimetry = planimetry
         self.referenceMarkers = referenceMarkers
         self.transitionZones = transitionZones
-        self.scene = scene ?? SCNScene()
+        self.scene = scene
         self.sceneObjects = sceneObjects
         self.roomURL = roomURL
-        self.color = Room.randomColor().withAlphaComponent(0.3)
         self.parentFloor = parentFloor
     }
     
     // MARK: - Equatable
-    
     public static func == (lhs: Room, rhs: Room) -> Bool {
         return lhs.id == rhs.id
     }
     
-    // MARK: - Utility Methods
+    // MARK: - Hashable
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(name)
+        hasher.combine(roomURL)
+        // Exclude scene and sceneObjects because they are not hashable
+    }
     
+    // MARK: - Decodable Implementation
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case referenceMarkers
+        case transitionZones
+        case roomURL
+        // Exclude scene and sceneObjects from decoding
+    }
+    
+    public required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(UUID.self, forKey: .id)
+        self.name = try container.decode(String.self, forKey: .name)
+        self.transitionZones = try container.decode([TransitionZone].self, forKey: .transitionZones)
+        self.roomURL = try container.decode(URL.self, forKey: .roomURL)
+        
+        // Set scene and sceneObjects as default values because they are not decodable
+        self.referenceMarkers = []
+        self.scene = SCNScene()  // Inizializza una scena vuota
+        self.sceneObjects = []  // Inizializza un array vuoto per gli oggetti della scena
+        self.parentFloor = nil  // La parentFloor non viene decodificata direttamente
+    }
+
+    // MARK: - Utility Methods
     private static func randomColor() -> UIColor {
         return UIColor(
             red: CGFloat(arc4random_uniform(256)) / 255.0,

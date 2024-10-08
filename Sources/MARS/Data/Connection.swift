@@ -7,10 +7,18 @@
 
 import Foundation
 
-class Connection: Codable{
-    public var id = UUID()
+class Connection: Codable, Equatable {
+    public var id: UUID
     public var name: String
     
+    // Inizializzatore
     init(id: UUID = UUID(), name: String) {
+        self.id = id
         self.name = name
     }
+    
+    // Conformità a Equatable
+    static func == (lhs: Connection, rhs: Connection) -> Bool {
+        return lhs.id == rhs.id && lhs.name == rhs.name
+    }
+}

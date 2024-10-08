@@ -20,4 +20,8 @@ class AdjacentFloorsConnection: Connection {
         self.targetTransitionZone = targetTransitionZone
         super.init(name: name)
     }
+    
+    required init(from decoder: any Decoder) throws {
+        fatalError("init(from:) has not been implemented")
+    }
 }
