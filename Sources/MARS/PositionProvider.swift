@@ -4,11 +4,10 @@ import SceneKit
 import ARKit
 
 public class LocationProvider: NSObject {
-
+    
     var arView: ARSCNView
     var building: Building?
-    
-    private var positionObservers: [PositionObserver] // list of Observers who will be notified of the change of position
+    private var positionObservers: [PositionObserver]
     
     // MARK: - Inizializzatore
     public init(arView: ARSCNView, url: URL) async {
@@ -23,12 +22,10 @@ public class LocationProvider: NSObject {
         }
     }
     
-    /// Adds the specified LocationObserver to the list of observers who will be notified
     public func addLocationObserver(positionObserver: PositionObserver) {
         self.positionObservers.append(positionObserver)
     }
     
-    /// Removes the specified LocationObserver from the list of observers
     public func removeLocationObserver(positionObserver: PositionObserver) {
         self.positionObservers = self.positionObservers.filter{$0 !== positionObserver}
     }
@@ -36,7 +33,6 @@ public class LocationProvider: NSObject {
     
     // MARK: - Metodi principali di caricamento
     
-    // Metodo che carica gli edifici in modo asincrono
     private func loadBuildings(from url: URL) async throws {
         let fileManager = FileManager.default
         let buildingURLs = try fileManager.contentsOfDirectory(at: url, includingPropertiesForKeys: [.isDirectoryKey], options: .skipsHiddenFiles)
@@ -236,18 +232,18 @@ extension LocationProvider: ARSCNViewDelegate {
     }
     
     public func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
-//        if let camera = self.sceneView?.session.currentFrame?.camera {
-//            DispatchQueue.main.async {NotificationCenter.default.post(name: .trackingPosition, object:
-//                                                                        camera.transform)}
-//        }
-//        
-//        if trState == self.sceneView?.session.currentFrame?.camera.trackingState{return}
-//        
-//        trState = self.sceneView?.session.currentFrame?.camera.trackingState
-//        
-//        DispatchQueue.main.async {
-//            NotificationCenter.default.post(name: .trackingState, object: self.trState)
-//        }
+        //        if let camera = self.sceneView?.session.currentFrame?.camera {
+        //            DispatchQueue.main.async {NotificationCenter.default.post(name: .trackingPosition, object:
+        //                                                                        camera.transform)}
+        //        }
+        //
+        //        if trState == self.sceneView?.session.currentFrame?.camera.trackingState{return}
+        //
+        //        trState = self.sceneView?.session.currentFrame?.camera.trackingState
+        //
+        //        DispatchQueue.main.async {
+        //            NotificationCenter.default.post(name: .trackingState, object: self.trState)
+        //        }
     }
 }
 
