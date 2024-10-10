@@ -3,14 +3,17 @@ import RoomPlan
 import SceneKit
 import ARKit
 
-class LocationProvider: NSObject {
+public class LocationProvider: NSObject {
 
-    private var arView: ARSCNView
-    private var building: Building?
+    var arView: ARSCNView
+    var building: Building?
+    
+    private var positionObservers: [PositionObserver] // list of Observers who will be notified of the change of position
     
     // MARK: - Inizializzatore
-    init(arView: ARSCNView, url: URL) async {
+    public init(arView: ARSCNView, url: URL) async {
         self.arView = arView
+        self.positionObservers = []
         super.init()
         
         do {
@@ -19,6 +22,17 @@ class LocationProvider: NSObject {
             print("Errore durante il caricamento del building: \(error)")
         }
     }
+    
+    /// Adds the specified LocationObserver to the list of observers who will be notified
+    public func addLocationObserver(positionObserver: PositionObserver) {
+        self.positionObservers.append(positionObserver)
+    }
+    
+    /// Removes the specified LocationObserver from the list of observers
+    public func removeLocationObserver(positionObserver: PositionObserver) {
+        self.positionObservers = self.positionObservers.filter{$0 !== positionObserver}
+    }
+    
     
     // MARK: - Metodi principali di caricamento
     
@@ -195,15 +209,45 @@ class LocationProvider: NSObject {
         
         return try SCNScene(url: URL(fileURLWithPath: usdzPath))
     }
+    
+    private func notifyRoomChanged(newRoom: Room) {
+        for positionObserver in self.positionObservers {
+            positionObserver.onRoomChanged(newRoom)
+        }
+    }
+    
+    private func notifyFloorChanged(newFloor: Floor) {
+        for positionObserver in self.positionObservers {
+            positionObserver.onFloorChanged(newFloor)
+        }
+    }
+    
+    private func notifyLocationUpdate(newLocation: Position) {
+        for positionObserver in self.positionObservers {
+            positionObserver.onLocationUpdate(newLocation)
+        }
+    }
+    
 }
 
 extension LocationProvider: ARSCNViewDelegate {
-    func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+    public func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
         // Implementazione della gestione dell'aggiunta di un nodo
     }
     
-    func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
-        // Implementazione dell'aggiornamento del nodo
+    public func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
+//        if let camera = self.sceneView?.session.currentFrame?.camera {
+//            DispatchQueue.main.async {NotificationCenter.default.post(name: .trackingPosition, object:
+//                                                                        camera.transform)}
+//        }
+//        
+//        if trState == self.sceneView?.session.currentFrame?.camera.trackingState{return}
+//        
+//        trState = self.sceneView?.session.currentFrame?.camera.trackingState
+//        
+//        DispatchQueue.main.async {
+//            NotificationCenter.default.post(name: .trackingState, object: self.trState)
+//        }
     }
 }
 

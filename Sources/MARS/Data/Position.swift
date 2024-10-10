@@ -8,12 +8,12 @@
 import Foundation
 import simd
 
-class Position{
+public class Position{
     public var position: simd_float4x4
     //Serve altro?
     //In quale piano è ?
     
-    init(position: simd_float4x4) {
+    public init(position: simd_float4x4) {
         self.position = position
     }
 }

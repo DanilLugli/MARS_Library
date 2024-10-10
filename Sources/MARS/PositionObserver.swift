@@ -7,7 +7,9 @@
 
 import Foundation
 
-public protocol PostionObserver: AnyObject {
-//    func onLocationUpdate(_ newPosition: Position)
-//    func onFloorChanged(_ newFloor: Floor)
+public protocol PositionObserver: AnyObject {
+    func onLocationUpdate(_ newPosition: Position)
+    func onRoomChanged(_ newRoom: Room)
+    func onFloorChanged(_ newFloor: Floor)
+    
 }

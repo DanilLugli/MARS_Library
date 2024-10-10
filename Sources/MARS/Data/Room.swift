@@ -15,16 +15,16 @@ public class Room: Decodable, Identifiable, ObservableObject, Equatable, Hashabl
     // MARK: - Properties
 
     public let id: UUID
-    var name: String
-    var referenceMarkers: [ReferenceMarker]
-    var transitionZones: [TransitionZone]
-    var scene: SCNScene // SceneKit properties will be excluded from decodable
-    var sceneObjects: [SCNNode] // SceneKit properties will be excluded from decodable
-    let roomURL: URL
-    weak var parentFloor: Floor?
+    public var name: String
+    public var referenceMarkers: [ReferenceMarker]
+    public var transitionZones: [TransitionZone]
+    public var scene: SCNScene // SceneKit properties will be excluded from decodable
+    public var sceneObjects: [SCNNode] // SceneKit properties will be excluded from decodable
+    public let roomURL: URL
+    public weak var parentFloor: Floor?
     
     // MARK: - Initializer
-    init(id: UUID = UUID(), name: String, referenceMarkers: [ReferenceMarker], transitionZones: [TransitionZone], scene: SCNScene, sceneObjects: [SCNNode], roomURL: URL, parentFloor: Floor?) {
+    public init(id: UUID = UUID(), name: String, referenceMarkers: [ReferenceMarker], transitionZones: [TransitionZone], scene: SCNScene, sceneObjects: [SCNNode], roomURL: URL, parentFloor: Floor?) {
         self.id = id
         self.name = name
         self.referenceMarkers = referenceMarkers
@@ -73,7 +73,7 @@ public class Room: Decodable, Identifiable, ObservableObject, Equatable, Hashabl
     }
 
     // MARK: - Utility Methods
-    private static func randomColor() -> UIColor {
+    public static func randomColor() -> UIColor {
         return UIColor(
             red: CGFloat(arc4random_uniform(256)) / 255.0,
             green: CGFloat(arc4random_uniform(256)) / 255.0,
