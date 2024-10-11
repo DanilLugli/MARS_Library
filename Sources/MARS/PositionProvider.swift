@@ -8,7 +8,7 @@ import ARKit
 public class LocationProvider: NSObject {
     
     var arView: ARSCNView
-    var building: Building?
+    public var building: Building?
     private var positionObservers: [PositionObserver]
     private var trState: TrackingState?
     
@@ -57,10 +57,11 @@ public class LocationProvider: NSObject {
     private func loadBuildings(from url: URL) async throws {
         let fileManager = FileManager.default
         let buildingURLs = try fileManager.contentsOfDirectory(at: url, includingPropertiesForKeys: [.isDirectoryKey], options: .skipsHiddenFiles)
-        
+        print("CARICO BUILDING: ")
         for buildingURL in buildingURLs {
             var isDirectory: ObjCBool = false
             if fileManager.fileExists(atPath: buildingURL.path, isDirectory: &isDirectory), isDirectory.boolValue {
+                print("Load floor: \(buildingURL)")
                 let floors = try await loadFloors(from: buildingURL)
                 let loadedBuilding = Building(name: buildingURL.lastPathComponent, floors: floors)
                 
@@ -84,6 +85,7 @@ public class LocationProvider: NSObject {
         for floorURL in floorURLs {
             if isDirectory(at: floorURL) {
                 // Create a Floor object
+                print(floorURL.lastPathComponent + "\n")
                 let floor = Floor(
                     name: floorURL.lastPathComponent,
                     associationMatrix: try loadAssociationMatrix(from: floorURL) ?? [:],
@@ -118,6 +120,7 @@ public class LocationProvider: NSObject {
         var rooms: [Room] = []
         for roomURL in roomURLs {
             if isDirectory(at: roomURL) {
+                print("RoomURL: \(roomURL)")
                 let room = Room(
                     name: roomURL.lastPathComponent,
                     referenceMarkers: try loadReferenceMarkers(from: roomURL),
@@ -246,7 +249,7 @@ public class LocationProvider: NSObject {
             print("USDZ file not found for \(sceneName)")
             return nil
         }
-        
+        print("ok scene")
         return try SCNScene(url: URL(fileURLWithPath: usdzPath))
     }
     
