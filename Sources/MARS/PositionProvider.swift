@@ -302,23 +302,20 @@ extension LocationProvider: @preconcurrency ARSCNViewDelegate {
     
     @MainActor
     public func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
-        // Get the current camera from the session frame
         if let camera = self.arView.session.currentFrame?.camera {
             
+            //Position Update
             let newLocation = Position(position: camera.transform)
-            
             notifyLocationUpdate(newLocation: newLocation)
             
+            //Tracking State Update
             let newTrackingState = camera.trackingState
-            
             if #available(iOS 16.0, *) {
                 if trState?.state == newTrackingState { return }
             } else {
                 //
             }
-
             trState = TrackingState(state: newTrackingState)
-
             if let updatedTrackingState = trState {
                 notifyTrackingStateChanged(updatedTrackingState)
             }
