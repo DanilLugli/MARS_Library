@@ -9,7 +9,7 @@ import Foundation
 import SceneKit
 import SwiftUI
 
-@available(iOS 13.0, *)
+@available(iOS 16.0, *)
 public class TransitionZone: Codable, Identifiable, Equatable, ObservableObject {
     public var id: UUID = UUID()
     public var name: String

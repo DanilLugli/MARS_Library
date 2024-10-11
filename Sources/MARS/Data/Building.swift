@@ -8,6 +8,8 @@
 import Foundation
 import SwiftUI
 
+
+@available(iOS 16.0, *)
 public class Building: Decodable, ObservableObject, Hashable {
     
     public var id: UUID

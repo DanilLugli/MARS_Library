@@ -10,6 +10,8 @@ import SceneKit
 import simd
 import SwiftUI
 
+
+@available(iOS 16.0, *)
 public class Floor: Equatable, Hashable, Decodable {
 
     public var id = UUID()

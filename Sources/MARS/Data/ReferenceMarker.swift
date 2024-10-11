@@ -7,12 +7,11 @@
 import SwiftUI
 import Foundation
 
-@available(iOS 13.0, *)
 public class ReferenceMarker: ObservableObject, Identifiable {
     public var id: UUID
-    public var imageName: String // Store the image name or path instead of the `Image`
+    public var imageName: String 
     public var image: Image {
-        Image(imageName) // Load the image based on `imageName`
+        Image(imageName)
     }
 
     public init(imageName: String) {

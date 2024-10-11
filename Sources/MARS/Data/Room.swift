@@ -10,7 +10,7 @@ import SceneKit
 import SwiftUI
 import UIKit
 
-@available(iOS 13.0, *)
+@available(iOS 16.0, *)
 public class Room: Decodable, Identifiable, ObservableObject, Equatable, Hashable {
     // MARK: - Properties
 

@@ -12,6 +12,7 @@ import RoomPlan
 import CoreMotion
 import ComplexModule
 
+@available(iOS 16.0, *)
 struct SCNViewContainer: UIViewRepresentable {
     
     typealias UIViewType = SCNView
@@ -265,7 +266,7 @@ struct SCNViewContainer: UIViewRepresentable {
     }
 }
 
-@available(iOS 17.0, *)
+@available(iOS 16.0, *)
 struct SCNViewContainer_Previews: PreviewProvider {
     static var previews: some View {
         SCNViewContainer()
