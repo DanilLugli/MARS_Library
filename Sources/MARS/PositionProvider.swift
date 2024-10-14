@@ -28,9 +28,6 @@ public class LocationProvider: NSObject {
         
         do {
             try await loadBuildings(from: url)
-            if self.worldMap == getWorldMap(url: url.appendingPathComponent("WorldMap.arexperience")) {
-                loadWorldMap(worldMap: worldMap!, "JsonParametric.json")
-            }
         } catch {
             print("Error uploading building: \(error)")
         }
@@ -126,7 +123,7 @@ public class LocationProvider: NSObject {
         var rooms: [Room] = []
         for roomURL in roomURLs {
             if isDirectory(at: roomURL) {
-               
+                
                 let room = Room(
                     name: roomURL.lastPathComponent,
                     referenceMarkers: try loadReferenceMarkers(from: roomURL),
@@ -134,17 +131,27 @@ public class LocationProvider: NSObject {
                     scene: SCNScene(),
                     sceneObjects: [],
                     planimetry: SCNViewContainer(),
+                    arWorldMap: nil,
                     roomURL: roomURL,
                     parentFloor: floor
                 )
-                
-                //Create planimetry for Room
-                room.planimetry.loadPlanimetry(scene: room.scene, borders: true)
                 
                 // Load scene if available
                 if let usdzScene = try loadSceneIfAvailable(for: room, url: roomURL) {
                     room.scene = usdzScene
                 }
+                
+                //Create planimetry for Room
+                room.planimetry.loadPlanimetry(scene: room.scene, borders: true)
+                
+                //Load ARWorldMap of Room
+                self.worldMap = getWorldMap(url: roomURL.appendingPathComponent("Maps").appendingPathComponent("\(room.name).map"))
+                
+//                if let map = self.worldMap{
+//                    loadWorldMap(worldMap: map, "\(room.name)")
+//                    
+//                }
+                
                 rooms.append(room)
             }
         }
@@ -168,7 +175,7 @@ public class LocationProvider: NSObject {
         var isDirectory: ObjCBool = false
         return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) && isDirectory.boolValue
     }
-
+    
     // MARK: - JSON Parsing
     
     /// Loads the association matrix from the specified floor directory.
@@ -258,7 +265,7 @@ public class LocationProvider: NSObject {
             print("USDZ file not found for \(sceneName)")
             return nil
         }
-
+        
         return try SCNScene(url: URL(fileURLWithPath: usdzPath))
     }
     
@@ -292,21 +299,21 @@ public class LocationProvider: NSObject {
     /// - Parameter trackingState: The new tracking state.
     private func notifyTrackingStateChanged(_ trackingState: TrackingState) {
         switch trackingState.state {
-            case .normal:
-                print("Tracking normal")
-            case .limited(let reason):
-                print("Tracking limited: \(reason)")
-            case .notAvailable:
-                print("Tracking not available")
-            @unknown default:
-                print("Unknown tracking state")
+        case .normal:
+            print("Tracking normal")
+        case .limited(let reason):
+            print("Tracking limited: \(reason)")
+        case .notAvailable:
+            print("Tracking not available")
+        @unknown default:
+            print("Unknown tracking state")
         }
     }
     
     // MARK: - Create ARWorldMap
     
     func loadWorldMap(worldMap: ARWorldMap, _ filename: String) {
-
+        
         // Configurazione AR
         let configuration = ARWorldTrackingConfiguration()
         configuration.planeDetection = [.horizontal, .vertical]
@@ -314,7 +321,6 @@ public class LocationProvider: NSObject {
         let options: ARSession.RunOptions = [.resetTracking, .removeExistingAnchors]
         var id = 0
         
-        // Carica il file JsonParametric
         if let data = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
             if let room = try? JSONDecoder().decode(CapturedRoom.self, from: data) {
                 // Aggiungi le ancore per le porte
@@ -329,35 +335,32 @@ public class LocationProvider: NSObject {
                 }
             }
         }
-
-        // Assegna la ARWorldMap alla configurazione
+        
         configuration.initialWorldMap = worldMap
-
-        // Imposta le opzioni di debug e avvia la sessione
+        
         arView.debugOptions = [.showFeaturePoints, .showWorldOrigin]
         arView.session.run(configuration, options: options)
-
+        
         // Se disponibile, imposta l'origine globale in base alla posizione e rotazione dell'utente
-//        if let p = Model.shared.lastKnowPositionInGlobalSpace, let a = Model.shared.actualRoto {
-//            var originInGlobalSpace = Model.shared.origin.copy() as! SCNNode
-//            originInGlobalSpace = projectNode(originInGlobalSpace, a)
-//
-//            let Transl_Rot = PtoO_Pspace(T_P: p.simdWorldTransform, T_O: originInGlobalSpace.simdWorldTransform)
-//            let newOrig = Model.shared.origin.copy() as! SCNNode
-//            newOrig.simdPosition = Transl_Rot.0
-//            newOrig.simdLocalRotate(by: simd_quatf(angle: GLKMathDegreesToRadians(Transl_Rot.1), axis: [0, 1, 0]))
-//            arView.session.setWorldOrigin(relativeTransform: newOrig.simdWorldTransform)
-//
-//            NotificationCenter.default.post(name: .genericMessage2, object: "translation: \(Transl_Rot.0)\nrotation: \(Transl_Rot.1)")
-//        }
+        //        if let p = Model.shared.lastKnowPositionInGlobalSpace, let a = Model.shared.actualRoto {
+        //            var originInGlobalSpace = Model.shared.origin.copy() as! SCNNode
+        //            originInGlobalSpace = projectNode(originInGlobalSpace, a)
+        //
+        //            let Transl_Rot = PtoO_Pspace(T_P: p.simdWorldTransform, T_O: originInGlobalSpace.simdWorldTransform)
+        //            let newOrig = Model.shared.origin.copy() as! SCNNode
+        //            newOrig.simdPosition = Transl_Rot.0
+        //            newOrig.simdLocalRotate(by: simd_quatf(angle: GLKMathDegreesToRadians(Transl_Rot.1), axis: [0, 1, 0]))
+        //            arView.session.setWorldOrigin(relativeTransform: newOrig.simdWorldTransform)
+        //
+        //            NotificationCenter.default.post(name: .genericMessage2, object: "translation: \(Transl_Rot.0)\nrotation: \(Transl_Rot.1)")
+        //        }
     }
     
     func getWorldMap(url: URL) -> ARWorldMap? {
+        print("CHECK URL: \(url)")
         do {
-            // Carica i dati della mappa dal file
             let mapData = try Data(contentsOf: url)
             
-            // Decodifica i dati in un oggetto ARWorldMap
             if let worldMap = try NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: mapData) {
                 return worldMap
             }
@@ -367,6 +370,8 @@ public class LocationProvider: NSObject {
         
         return nil
     }
+    
+    
     
     // MARK: - Manage Position User
     
@@ -414,7 +419,7 @@ public class LocationProvider: NSObject {
         //add position node
         var sphere = generateSphereNode(UIColor(red: 0, green: 0, blue: 255, alpha: 1.0), 0.2)
         print(sphere.position)
-    
+        
         //sphere.rotation.x = 0
         //sphere.rotation.z = 0
         //sphere.simdWorldPosition = simd_float3(pos.columns.3.x, pos.columns.3.y, pos.columns.3.z)
@@ -486,7 +491,7 @@ public class LocationProvider: NSObject {
         
         return sphere
     }
-
+    
     private func generateSphereNode(_ color: UIColor, _ radius: CGFloat) -> SCNNode {
         
         let houseNode = SCNNode() //3 Sphere
@@ -495,7 +500,7 @@ public class LocationProvider: NSObject {
         let sphereNode = SCNNode()
         sphereNode.geometry = sphere
         sphereNode.geometry?.firstMaterial?.diffuse.contents = color
-
+        
         let sphere2 = SCNSphere(radius: radius)
         //let sphere = SCNPyramid(width: radius, height: radius*2, length: radius)
         let sphereNode2 = SCNNode()
@@ -521,7 +526,7 @@ public class LocationProvider: NSObject {
     
 }
 
-    // MARK: - ARSCNViewDelegate
+// MARK: - ARSCNViewDelegate
 @available(iOS 16.0, *)
 @MainActor
 extension LocationProvider: @preconcurrency ARSCNViewDelegate {

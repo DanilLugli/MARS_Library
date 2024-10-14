@@ -9,6 +9,7 @@ import Foundation
 import SceneKit
 import SwiftUI
 import UIKit
+import ARKit
 
 @available(iOS 16.0, *)
 public class Room: @preconcurrency Decodable, Identifiable, ObservableObject, Equatable, Hashable {
@@ -21,11 +22,12 @@ public class Room: @preconcurrency Decodable, Identifiable, ObservableObject, Eq
     public var scene: SCNScene // SceneKit properties will be excluded from decodable
     public var sceneObjects: [SCNNode] // SceneKit properties will be excluded from decodable
     public var planimetry: SCNViewContainer
+    public var arWorldMap: ARWorldMap?
     public let roomURL: URL
     public weak var parentFloor: Floor?
     
     // MARK: - Initializer
-    public init(id: UUID = UUID(), name: String, referenceMarkers: [ReferenceMarker], transitionZones: [TransitionZone], scene: SCNScene, sceneObjects: [SCNNode], planimetry: SCNViewContainer, roomURL: URL, parentFloor: Floor?) {
+    public init(id: UUID = UUID(), name: String, referenceMarkers: [ReferenceMarker], transitionZones: [TransitionZone], scene: SCNScene, sceneObjects: [SCNNode], planimetry: SCNViewContainer, arWorldMap: ARWorldMap?, roomURL: URL, parentFloor: Floor?) {
         self.id = id
         self.name = name
         self.referenceMarkers = referenceMarkers
@@ -33,6 +35,7 @@ public class Room: @preconcurrency Decodable, Identifiable, ObservableObject, Eq
         self.scene = scene
         self.sceneObjects = sceneObjects
         self.planimetry = planimetry
+        self.arWorldMap = arWorldMap
         self.roomURL = roomURL
         self.parentFloor = parentFloor
     }
@@ -74,6 +77,7 @@ public class Room: @preconcurrency Decodable, Identifiable, ObservableObject, Eq
         self.sceneObjects = []  // Inizializza un array vuoto per gli oggetti della scena
         self.planimetry = SCNViewContainer()
         self.parentFloor = nil  // La parentFloor non viene decodificata direttamente
+        self.arWorldMap = nil
     }
 
     // MARK: - Utility Methods
@@ -85,4 +89,6 @@ public class Room: @preconcurrency Decodable, Identifiable, ObservableObject, Eq
             alpha: 1.0
         )
     }
+    
+
 }
