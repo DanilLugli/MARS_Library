@@ -11,7 +11,7 @@ import SwiftUI
 import UIKit
 
 @available(iOS 16.0, *)
-public class Room: Decodable, Identifiable, ObservableObject, Equatable, Hashable {
+public class Room: @preconcurrency Decodable, Identifiable, ObservableObject, Equatable, Hashable {
     // MARK: - Properties
 
     public let id: UUID
@@ -20,17 +20,19 @@ public class Room: Decodable, Identifiable, ObservableObject, Equatable, Hashabl
     public var transitionZones: [TransitionZone]
     public var scene: SCNScene // SceneKit properties will be excluded from decodable
     public var sceneObjects: [SCNNode] // SceneKit properties will be excluded from decodable
+    public var planimetry: SCNViewContainer
     public let roomURL: URL
     public weak var parentFloor: Floor?
     
     // MARK: - Initializer
-    public init(id: UUID = UUID(), name: String, referenceMarkers: [ReferenceMarker], transitionZones: [TransitionZone], scene: SCNScene, sceneObjects: [SCNNode], roomURL: URL, parentFloor: Floor?) {
+    public init(id: UUID = UUID(), name: String, referenceMarkers: [ReferenceMarker], transitionZones: [TransitionZone], scene: SCNScene, sceneObjects: [SCNNode], planimetry: SCNViewContainer, roomURL: URL, parentFloor: Floor?) {
         self.id = id
         self.name = name
         self.referenceMarkers = referenceMarkers
         self.transitionZones = transitionZones
         self.scene = scene
         self.sceneObjects = sceneObjects
+        self.planimetry = planimetry
         self.roomURL = roomURL
         self.parentFloor = parentFloor
     }
@@ -58,6 +60,7 @@ public class Room: Decodable, Identifiable, ObservableObject, Equatable, Hashabl
         // Exclude scene and sceneObjects from decoding
     }
     
+    @MainActor
     public required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.id = try container.decode(UUID.self, forKey: .id)
@@ -69,6 +72,7 @@ public class Room: Decodable, Identifiable, ObservableObject, Equatable, Hashabl
         self.referenceMarkers = []
         self.scene = SCNScene()  // Inizializza una scena vuota
         self.sceneObjects = []  // Inizializza un array vuoto per gli oggetti della scena
+        self.planimetry = SCNViewContainer()
         self.parentFloor = nil  // La parentFloor non viene decodificata direttamente
     }
 

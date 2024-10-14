@@ -13,9 +13,9 @@ import CoreMotion
 import ComplexModule
 
 @available(iOS 16.0, *)
-struct SCNViewContainer: UIViewRepresentable {
+public struct SCNViewContainer: UIViewRepresentable {
     
-    typealias UIViewType = SCNView
+    public typealias UIViewType = SCNView
     
     var scnView = SCNView(frame: .zero)
     var handler = HandleTap()
@@ -131,9 +131,9 @@ struct SCNViewContainer: UIViewRepresentable {
             }
     }
     
-    func loadPlanimetry(room: Room, borders: Bool) {
+    func loadPlanimetry(scene: SCNScene, borders: Bool) {
         
-        scnView.scene = room.scene
+        scnView.scene = scene
         drawContent(borders: borders)
         setMassCenter()
         setCamera()
@@ -209,35 +209,31 @@ struct SCNViewContainer: UIViewRepresentable {
         
     }
 
-    func makeUIView(context: Context) -> SCNView {
-        print("Creazione di SCNView e aggiunta dei riconoscitori di gesti")
+    public func makeUIView(context: Context) -> SCNView {
         
         handler.scnView = scnView
         
-        // Aggiunta del riconoscitore di pinch per lo zoom
         let pinchGesture = UIPinchGestureRecognizer(target: context.coordinator, action: #selector(context.coordinator.handlePinch(_:)))
         scnView.addGestureRecognizer(pinchGesture)
         
-        // Aggiunta del riconoscitore di pan per lo spostamento
         let panGesture = UIPanGestureRecognizer(target: context.coordinator, action: #selector(context.coordinator.handlePan(_:)))
         scnView.addGestureRecognizer(panGesture)
         
-        // Configura lo sfondo della scena
         scnView.backgroundColor = UIColor.white
         
         return scnView
     }
     
-    func updateUIView(_ uiView: SCNView, context: Context) {}
+    public func updateUIView(_ uiView: SCNView, context: Context) {}
     
-    func makeCoordinator() -> SCNViewContainerCoordinator {
+    public func makeCoordinator() -> SCNViewContainerCoordinator {
         SCNViewContainerCoordinator(self)
     }
     
-    class SCNViewContainerCoordinator: NSObject {
-        var parent: SCNViewContainer
+    public class SCNViewContainerCoordinator: NSObject {
+        public var parent: SCNViewContainer
         
-        init(_ parent: SCNViewContainer) {
+        public init(_ parent: SCNViewContainer) {
             self.parent = parent
         }
         
@@ -267,8 +263,8 @@ struct SCNViewContainer: UIViewRepresentable {
 }
 
 @available(iOS 16.0, *)
-struct SCNViewContainer_Previews: PreviewProvider {
-    static var previews: some View {
+public struct SCNViewContainer_Previews: PreviewProvider {
+    public static var previews: some View {
         SCNViewContainer()
     }
 }
