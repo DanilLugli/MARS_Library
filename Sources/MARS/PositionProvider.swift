@@ -1,13 +1,14 @@
 import Foundation
+import SwiftUICore
 import RoomPlan
 import SceneKit
 import ARKit
 
 @available(iOS 16.0, *)
 @MainActor
-public class LocationProvider: NSObject {
+public class LocationProvider: NSObject, ObservableObject {
     
-    var arView: ARSCNView
+    var arSCNView: ARSCNView
     var worldMap: ARWorldMap?
     public var building: Building?
     private var positionObservers: [PositionObserver]
@@ -19,12 +20,12 @@ public class LocationProvider: NSObject {
     /// - Parameters:
     ///   - arView: The ARSCNView used for rendering the AR experience.
     ///   - url: The URL pointing to the building data to load.
-    public init(arView: ARSCNView, url: URL) async {
-        self.arView = arView
+    public init(arSCNView: ARSCNView, url: URL) async {
+        self.arSCNView = arSCNView
         self.positionObservers = []
         super.init()
         
-        self.arView.delegate = self
+        self.arSCNView.delegate = self
         
         do {
             try await loadBuildings(from: url)
@@ -145,12 +146,12 @@ public class LocationProvider: NSObject {
                 room.planimetry.loadPlanimetry(scene: room.scene, borders: true)
                 
                 //Load ARWorldMap of Room
-                self.worldMap = getWorldMap(url: roomURL.appendingPathComponent("Maps").appendingPathComponent("\(room.name).map"))
+                room.arWorldMap = getWorldMap(url: roomURL.appendingPathComponent("Maps").appendingPathComponent("\(room.name).map"))
                 
-//                if let map = self.worldMap{
-//                    loadWorldMap(worldMap: map, "\(room.name)")
-//                    
-//                }
+                //                if let map = self.worldMap{
+                //                    loadWorldMap(worldMap: map, "\(room.name)")
+                //
+                //                }
                 
                 rooms.append(room)
             }
@@ -338,8 +339,8 @@ public class LocationProvider: NSObject {
         
         configuration.initialWorldMap = worldMap
         
-        arView.debugOptions = [.showFeaturePoints, .showWorldOrigin]
-        arView.session.run(configuration, options: options)
+        arSCNView.debugOptions = [.showFeaturePoints, .showWorldOrigin]
+        arSCNView.session.run(configuration, options: options)
         
         // Se disponibile, imposta l'origine globale in base alla posizione e rotazione dell'utente
         //        if let p = Model.shared.lastKnowPositionInGlobalSpace, let a = Model.shared.actualRoto {
@@ -524,6 +525,13 @@ public class LocationProvider: NSObject {
         return houseNode
     }
     
+    
+    // MARK: - Manage Map View
+    @available(iOS 16.0, *)
+    public func showMap() -> some View {
+        return SceneViewContainer(locationProvider: self)
+    }
+    
 }
 
 // MARK: - ARSCNViewDelegate
@@ -536,7 +544,7 @@ extension LocationProvider: @preconcurrency ARSCNViewDelegate {
     
     @MainActor
     public func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
-        if let camera = self.arView.session.currentFrame?.camera {
+        if let camera = self.arSCNView.session.currentFrame?.camera {
             
             //Position Update
             let newLocation = Position(position: camera.transform)
