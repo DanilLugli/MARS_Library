@@ -21,20 +21,18 @@ public class Room: @preconcurrency Decodable, Identifiable, ObservableObject, Eq
     public var transitionZones: [TransitionZone]
     public var scene: SCNScene // SceneKit properties will be excluded from decodable
     public var sceneObjects: [SCNNode] // SceneKit properties will be excluded from decodable
-    public var planimetry: SCNViewContainer
     public var arWorldMap: ARWorldMap?
     public let roomURL: URL
     public weak var parentFloor: Floor?
     
     // MARK: - Initializer
-    public init(id: UUID = UUID(), name: String, referenceMarkers: [ReferenceMarker], transitionZones: [TransitionZone], scene: SCNScene, sceneObjects: [SCNNode], planimetry: SCNViewContainer, arWorldMap: ARWorldMap?, roomURL: URL, parentFloor: Floor?) {
+    public init(id: UUID = UUID(), name: String, referenceMarkers: [ReferenceMarker], transitionZones: [TransitionZone], scene: SCNScene, sceneObjects: [SCNNode], arWorldMap: ARWorldMap?, roomURL: URL, parentFloor: Floor?) {
         self.id = id
         self.name = name
         self.referenceMarkers = referenceMarkers
         self.transitionZones = transitionZones
         self.scene = scene
         self.sceneObjects = sceneObjects
-        self.planimetry = planimetry
         self.arWorldMap = arWorldMap
         self.roomURL = roomURL
         self.parentFloor = parentFloor
@@ -75,7 +73,6 @@ public class Room: @preconcurrency Decodable, Identifiable, ObservableObject, Eq
         self.referenceMarkers = []
         self.scene = SCNScene()  // Inizializza una scena vuota
         self.sceneObjects = []  // Inizializza un array vuoto per gli oggetti della scena
-        self.planimetry = SCNViewContainer()
         self.parentFloor = nil  // La parentFloor non viene decodificata direttamente
         self.arWorldMap = nil
     }

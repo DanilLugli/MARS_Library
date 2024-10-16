@@ -10,17 +10,21 @@ import SwiftUI
 
 
 @available(iOS 16.0, *)
-public class Building: Decodable, ObservableObject, Hashable {
+public final class Building: Decodable, ObservableObject, Hashable{
     
-    public var id: UUID
-    public var name: String
-    public var floors: [Floor]
+    public let id: UUID = UUID()
+    public let name: String
+    public let floors: [Floor]
     
     // MARK: - Initializer
-    public init(id: UUID = UUID(), name: String, floors: [Floor]) {
-        self.id = id
+    public init(name: String, floors: [Floor]) {
         self.name = name
         self.floors = floors
+    }
+    
+    public init(){
+        self.name = ""
+        self.floors = []
     }
     
     // MARK: - Equatable

@@ -130,7 +130,7 @@ public struct SCNViewContainer: UIViewRepresentable {
                 drawnNodes.insert(nodeName!)
             }
     }
-    
+
     func loadPlanimetry(scene: SCNScene, borders: Bool) {
         
         scnView.scene = scene

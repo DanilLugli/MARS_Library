@@ -12,7 +12,7 @@ import SwiftUI
 
 
 @available(iOS 16.0, *)
-public class Floor: Equatable, Hashable, @preconcurrency Decodable {
+public class Floor: Equatable, Hashable, @preconcurrency Decodable{
 
     public var id = UUID()
     public var name: String
@@ -20,16 +20,14 @@ public class Floor: Equatable, Hashable, @preconcurrency Decodable {
     public var rooms: [Room]
     public var sceneObjects: [SCNNode]
     public var scene: SCNScene
-    public var planimetry: SCNViewContainer
 
-    public init(id: UUID = UUID(), name: String, associationMatrix: [String: RotoTraslationMatrix], rooms: [Room], sceneObjects: [SCNNode], scene: SCNScene, planimetry: SCNViewContainer) {
+    public init(id: UUID = UUID(), name: String, associationMatrix: [String: RotoTraslationMatrix], rooms: [Room], sceneObjects: [SCNNode], scene: SCNScene) {
         self.id = id
         self.name = name
         self.associationMatrix = associationMatrix
         self.rooms = rooms
         self.sceneObjects = sceneObjects
         self.scene = scene
-        self.planimetry = planimetry
     }
 
     // MARK: - Equatable
@@ -64,6 +62,5 @@ public class Floor: Equatable, Hashable, @preconcurrency Decodable {
 
         self.sceneObjects = []
         self.scene = SCNScene()
-        self.planimetry = SCNViewContainer()
     }
 }
