@@ -12,26 +12,37 @@ import Foundation
 import Accelerate
 
 @available(iOS 16.0, *)
-struct PositionProvider: PositionSubject, LocationObserver{
-    var id: UUID = UUID()
+public class PositionProvider: PositionSubject, LocationObserver, Hashable, ObservableObject{
     
+    public var id: UUID = UUID()
     var positionObservers: [PositionObserver]
     var arSCNView: ARSCNView
-    let building: Building
+    public let building: Building
+    let position = Position()
     
-    public init(url: URL, arSCNView: ARSCNView){
-        self.building = Building()
+    @MainActor let arView = ARSCNViewContainer()
+    @MainActor let scnView = SCNViewContainer()
+    
+    public init(url: URL, arSCNView: ARSCNView) async {
         self.positionObservers = []
         self.arSCNView = arSCNView
+        self.arView = await ARSCNViewContainer()
+        self.scnView = await SCNViewContainer()
+        
+        do {
+            self.building = try await FileHandler.loadBuildings(from: url)
+        } catch {
+            self.building = Building()
+        }
     }
-   
-    mutating func addLocationObserver(positionObserver: PositionObserver) {
+    
+    func addLocationObserver(positionObserver: PositionObserver) {
         if !self.positionObservers.contains(where: { $0.id == positionObserver.id}) {
             self.positionObservers.append(positionObserver)
         }
     }
-  
-    mutating func removeLocationObserver(positionObserver: PositionObserver) {
+    
+    func removeLocationObserver(positionObserver: PositionObserver) {
         self.positionObservers = self.positionObservers.filter { $0.id != positionObserver.id }
     }
     
@@ -53,7 +64,26 @@ struct PositionProvider: PositionSubject, LocationObserver{
         }
     }
     
-    func onLocationUpdate(_ newPosition: Position, _ trackingState: TrackingState) {
+    public static func == (lhs: PositionProvider, rhs: PositionProvider) -> Bool {
+        return lhs.id == rhs.id
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    @MainActor public func start(){
+        
+        arView.startARSCNView(worldMap: building.floors[0].rooms[0].arWorldMap!)
+        scnView.loadPlanimetry(scene: building.floors[0].rooms[0].scene, borders: true)
+        
+    }
+
+    @MainActor public func showMap() -> some View {
+            return MapView(locationProvider: self)
+        }
+        
+    public func onLocationUpdate(_ newPosition: Position, _ trackingState: TrackingState) {
         //TODO: NEW LOCATION MANAGE FROM DELEGATE
     }
 }

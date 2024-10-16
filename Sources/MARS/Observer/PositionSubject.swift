@@ -11,6 +11,6 @@ import Foundation
 protocol PositionSubject: LocationSubject{
 
     func notifyRoomChanged(newRoom: Room)
-    
     func notifyFloorChanged(newFloor: Floor)
+    
 }

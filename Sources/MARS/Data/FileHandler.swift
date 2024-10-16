@@ -49,7 +49,7 @@ struct FileHandler {
             if isDirectory(at: floorURL) {
                 // Create a Floor object
                 let scene = SCNScene()
-                let floor = await Floor(
+                let floor = Floor(
                     name: floorURL.lastPathComponent,
                     associationMatrix: try loadAssociationMatrix(from: floorURL) ?? [:],
                     rooms: [],
@@ -84,7 +84,7 @@ struct FileHandler {
         for roomURL in roomURLs {
             if isDirectory(at: roomURL) {
                 
-                let room = await Room(
+                let room = Room(
                     name: roomURL.lastPathComponent,
                     referenceMarkers: try loadReferenceMarkers(from: roomURL),
                     transitionZones: [],
@@ -227,7 +227,6 @@ struct FileHandler {
     }
     
     static func getWorldMap(url: URL) -> ARWorldMap? {
-            print("CHECK URL: \(url)")
             do {
                 let mapData = try Data(contentsOf: url)
     
@@ -240,4 +239,11 @@ struct FileHandler {
     
             return nil
         }
+    
+//    func getWorldMap(url: URL) -> ARWorldMap? {
+//        guard let mapData = try? Data(contentsOf: url), let worldMap = try? NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: mapData) else {
+//            return nil
+//        }
+//        return worldMap
+//    }
 }

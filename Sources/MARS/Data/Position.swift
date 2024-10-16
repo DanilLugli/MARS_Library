@@ -1,6 +1,6 @@
 //
 //  Position.swift
-//  
+//
 //
 //  Created by Danil Lugli on 03/10/24.
 //
@@ -15,5 +15,10 @@ public class Position{
     
     public init(position: simd_float4x4) {
         self.position = position
+    }
+    
+    // MARK: - Inizializzatore con posizione "zero" (tutti i valori a 0)
+    public init() {
+        self.position = simd_float4x4(0) // Matrice 4x4 con tutti i valori a zero
     }
 }

@@ -8,14 +8,12 @@
 import Foundation
 import ARKit
 
-
 @available(iOS 16.0, *)
 class ARSCNDelegate: NSObject, LocationSubject, @preconcurrency ARSCNViewDelegate {
     
     var positionObservers: [PositionObserver] = []
     private var sceneView: ARSCNView?
     private var trState: ARCamera.TrackingState?
-    //var currentPosition: Position?
     
     func setSceneView(_ scnV: ARSCNView) {
         sceneView = scnV
@@ -37,8 +35,6 @@ class ARSCNDelegate: NSObject, LocationSubject, @preconcurrency ARSCNViewDelegat
         }
     }
     
-    // MARK: - ARSCNViewDelegate
-    
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
         //didAdd - if needed
     }
@@ -49,18 +45,11 @@ class ARSCNDelegate: NSObject, LocationSubject, @preconcurrency ARSCNViewDelegat
             let trState = self.sceneView?.session.currentFrame?.camera.trackingState {
             
             DispatchQueue.main.async {
+                print("DELEGATE: Updated")
                 let newPosition = Position(position: camera.transform)
                 let newTrackingState = TrackingState(state: trState)
                 self.notifyLocationUpdate(newLocation: newPosition, newTrackingState: newTrackingState)
             }
-        }
-        
-//        if trState == self.sceneView?.session.currentFrame?.camera.trackingState{return}
-//        
-//        trState = self.sceneView?.session.currentFrame?.camera.trackingState
-        
-        DispatchQueue.main.async {
-            //NotificationCenter.default.post(name: .trackingState, object: self.trState)
         }
     }
 }

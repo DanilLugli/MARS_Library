@@ -15,10 +15,8 @@ protocol LocationSubject {
     // MARK: - Observer Management
   
     mutating func addLocationObserver(positionObserver: PositionObserver)
-    
     mutating func removeLocationObserver(positionObserver: PositionObserver)
 
     // MARK: - Observer Notification
-    
     func notifyLocationUpdate(newLocation: Position, newTrackingState: TrackingState)
 }

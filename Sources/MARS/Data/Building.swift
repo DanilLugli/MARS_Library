@@ -12,7 +12,7 @@ import SwiftUI
 @available(iOS 16.0, *)
 public final class Building: Decodable, ObservableObject, Hashable{
     
-    public let id: UUID = UUID()
+    public var id: UUID = UUID()
     public let name: String
     public let floors: [Floor]
     
