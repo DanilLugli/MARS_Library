@@ -75,7 +75,7 @@ public class PositionProvider: PositionSubject, LocationObserver, Hashable, Obse
     @MainActor public func start(){
         
         arView.startARSCNView(worldMap: building.floors[0].rooms[0].arWorldMap!)
-        scnView.loadPlanimetry(scene: building.floors[0].rooms[0].scene, borders: true)
+        scnView.loadPlanimetry(scene: building.floors[0].scene, borders: true)
         
     }
 

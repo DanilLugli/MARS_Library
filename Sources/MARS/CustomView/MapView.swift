@@ -1,10 +1,3 @@
-//
-//  SwiftUIView.swift
-//  MARS
-//
-//  Created by Danil Lugli on 11/10/24.
-//
-
 import SwiftUI
 import ARKit
 
@@ -18,24 +11,26 @@ public struct MapView: View {
     }
     
     public var body: some View {
-        VStack {
-            Text("Position Map")
-                .font(.headline)
-                .padding()
+        ZStack {
+            locationProvider.arView
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .ignoresSafeArea()
             
-            Text(locationProvider.building.name)
-                .font(.headline)
-                .padding()
-            
-            ZStack{
+            VStack {
                 
-                locationProvider.arView
-                    .edgesIgnoringSafeArea(.all)
+                Text(locationProvider.building.name)
+                    .font(.title)
+                    .bold()
+                    .foregroundColor(.white)
+                    .padding(.top, 60)
+                
+                Spacer()
                 
                 locationProvider.scnView
-                    .frame(width: 100, height: 50)
+                    .frame(width: 320, height: 200)
+                    .cornerRadius(20)
+                    .padding(.bottom, 20)
             }
-            
         }
         .onAppear {
             Task {
