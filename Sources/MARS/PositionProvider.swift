@@ -23,14 +23,14 @@ public class PositionProvider: PositionSubject, LocationObserver, Hashable, Obse
     @MainActor let arView = ARSCNViewContainer()
     @MainActor let scnView = SCNViewContainer()
     
-    public init(url: URL, arSCNView: ARSCNView) async {
+    public init(data: URL, arSCNView: ARSCNView) async {
         self.positionObservers = []
         self.arSCNView = arSCNView
         self.arView = await ARSCNViewContainer()
         self.scnView = await SCNViewContainer()
         
         do {
-            self.building = try await FileHandler.loadBuildings(from: url)
+            self.building = try await FileHandler.loadBuildings(from: data)
         } catch {
             self.building = Building()
         }
