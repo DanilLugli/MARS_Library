@@ -45,7 +45,7 @@ public struct SCNViewContainer: UIViewRepresentable {
         cameraNode.camera?.orthographicScale = 10
         
         cameraNode.eulerAngles = SCNVector3(-Double.pi / 2, 0, 0)
-
+        
         let directionalLight = SCNNode()
         directionalLight.light = SCNLight()
         directionalLight.light!.type = .ambient
@@ -69,11 +69,76 @@ public struct SCNViewContainer: UIViewRepresentable {
         scnView.scene?.rootNode.addChildNode(massCenter)
     }
     
-    func drawContent(borders: Bool) {
+    func generateSphereNode(_ color: UIColor, _ radius: CGFloat) -> SCNNode {
         
+        let houseNode = SCNNode() //3 Sphere
+        
+        let sphere = SCNSphere(radius: radius)
+        //let sphere = SCNPyramid(width: radius, height: radius*2, length: radius)
+        let sphereNode = SCNNode()
+        sphereNode.geometry = sphere
+        sphereNode.geometry?.firstMaterial?.diffuse.contents = color
+        
+        let sphere2 = SCNSphere(radius: radius)
+        //let sphere = SCNPyramid(width: radius, height: radius*2, length: radius)
+        let sphereNode2 = SCNNode()
+        sphereNode2.geometry = sphere2
+        var color2 = color
+        sphereNode2.geometry?.firstMaterial?.diffuse.contents = color2.withAlphaComponent(color2.cgColor.alpha - 0.3)
+        sphereNode2.position = SCNVector3(0, 0, -1)
+        
+        let sphere3 = SCNSphere(radius: radius)
+        //let sphere = SCNPyramid(width: radius, height: radius*2, length: radius)
+        let sphereNode3 = SCNNode()
+        sphereNode3.geometry = sphere3
+        var color3 = color
+        sphereNode3.geometry?.firstMaterial?.diffuse.contents = color2.withAlphaComponent(color2.cgColor.alpha - 0.6)
+        sphereNode3.position = SCNVector3(-0.5, 0, 0)
+        
+        
+        houseNode.addChildNode(sphereNode)
+        houseNode.addChildNode(sphereNode2)
+        houseNode.addChildNode(sphereNode3)
+        return houseNode
+    }
+    
+    func addLocationNode() {
+        
+        if scnView.scene == nil {
+            print("New Scene")
+            scnView.scene = SCNScene()
+        }
+        
+        let sphere = SCNSphere(radius: 1.0)  // Adjust the radius as needed
+        
+        // Get the SF Symbol image
+        if let symbolImage = UIImage(systemName: "location.north.circle.fill")?.withTintColor(UIColor.blue, renderingMode: .alwaysOriginal) {
+            
+            let material = SCNMaterial()
+            material.diffuse.contents = symbolImage
+            
+            sphere.materials = [material]
+            
+            let symbolNode = SCNNode(geometry: sphere)
+            symbolNode.position = SCNVector3(0, 0, 0)
+            
+            symbolNode.name = "locationSF"
+            
+            //TODO: Add new icon for position
+            //scnView.scene?.rootNode.addChildNode(symbolNode)
+        }
+        
+        var userLocation = generateSphereNode(UIColor(red: 0, green: 0, blue: 255, alpha: 1.0), 0.2)
+        
+        userLocation.name = "userLocation"
+        scnView.scene?.rootNode.addChildNode(userLocation)
+    }
+    
+    func drawContent(borders: Bool) {
         var drawnNodes = Set<String>()
         
         print("RootNode: \(String(describing: scnView.scene?.rootNode.name))\n\n")
+        
         scnView.scene?
             .rootNode
             .childNodes(passingTest: { n, _ in
@@ -84,62 +149,70 @@ public struct SCNViewContainer: UIViewRepresentable {
                 String(n.name!.suffix(4)) != "_grp" &&
                 n.name! != "__selected__"
             })
-            .forEach {
-                let nodeName = $0.name
+            .forEach { node in
+                guard let nodeName = node.name else { return }
+                print(node.name)
                 let material = SCNMaterial()
+                
                 if nodeName == "Floor0" {
                     material.diffuse.contents = UIColor.green
                 } else {
                     material.diffuse.contents = UIColor.black
-                    if nodeName?.prefix(5) == "Floor" {
+                    if nodeName.prefix(5) == "Floor" {
                         material.diffuse.contents = UIColor.white.withAlphaComponent(0.2)
                     }
-                    if nodeName!.prefix(6) == "Transi" {
+                    if nodeName.prefix(6) == "Transi" {
                         material.diffuse.contents = UIColor.white
                     }
-                    if nodeName!.prefix(4) == "Door" {
+                    if nodeName.prefix(4) == "Door" {
                         material.diffuse.contents = UIColor.systemGray5
                     }
-                    if nodeName!.prefix(4) == "Open"{
+                    if nodeName.prefix(4) == "Open" {
                         material.diffuse.contents = UIColor.systemGray5
                     }
-                    if nodeName!.prefix(4) == "Tabl" {
+                    if nodeName.prefix(4) == "Tabl" {
                         material.diffuse.contents = UIColor.brown
                     }
-                    if nodeName!.prefix(4) == "Chai"{
+                    if nodeName.prefix(4) == "Chai" {
                         material.diffuse.contents = UIColor.brown.withAlphaComponent(0.4)
                     }
-                    if nodeName!.prefix(4) == "Stor"{
+                    if nodeName.prefix(4) == "Stor" {
                         material.diffuse.contents = UIColor.systemGray2
                     }
-                    if nodeName!.prefix(4) == "Sofa"{
+                    if nodeName.prefix(4) == "Sofa" {
                         material.diffuse.contents = UIColor(red: 0.0, green: 0.0, blue: 0.5, alpha: 0.6)
                     }
-                    if nodeName!.prefix(4) == "Tele"{
+                    if nodeName.prefix(4) == "loca" {
+                        print("exist")
+                        material.diffuse.contents = UIColor.green
+                    }
+                    if nodeName.prefix(4) == "Tele" {
                         material.diffuse.contents = UIColor.orange
                     }
                     material.lightingModel = .physicallyBased
-                    $0.geometry?.materials = [material]
-                    
-                    if borders {
-                        $0.scale.x = $0.scale.x < 0.2 ? $0.scale.x + 0.1 : $0.scale.x
-                        $0.scale.z = $0.scale.z < 0.2 ? $0.scale.z + 0.1 : $0.scale.z
-                        $0.scale.y = ($0.name!.prefix(4) == "Wall") ? 0.1 : $0.scale.y
-                    }
                 }
-                drawnNodes.insert(nodeName!)
+                
+                node.geometry?.materials = [material]
+                
+                if borders {
+                    node.scale.x = node.scale.x < 0.2 ? node.scale.x + 0.1 : node.scale.x
+                    node.scale.z = node.scale.z < 0.2 ? node.scale.z + 0.1 : node.scale.z
+                    node.scale.y = (node.name!.prefix(4) == "Wall") ? 0.1 : node.scale.y
+                }
+                
+                drawnNodes.insert(nodeName)
             }
     }
-
+    
     func loadPlanimetry(scene: SCNScene, borders: Bool) {
         
         scnView.scene = scene
+        addLocationNode()
         drawContent(borders: borders)
         setMassCenter()
         setCamera()
-        
     }
-
+    
     func findMassCenter(_ nodes: [SCNNode]) -> SCNNode {
         let massCenter = SCNNode()
         var X: [Float] = [Float.greatestFiniteMagnitude, -Float.greatestFiniteMagnitude]
@@ -208,7 +281,7 @@ public struct SCNViewContainer: UIViewRepresentable {
         directionalLight.constraints = [vConstraint]
         
     }
-
+    
     public func makeUIView(context: Context) -> SCNView {
         
         handler.scnView = scnView
@@ -237,7 +310,6 @@ public struct SCNViewContainer: UIViewRepresentable {
             self.parent = parent
         }
         
-        // Gestione dello zoom tramite pinch
         @MainActor @objc func handlePinch(_ gesture: UIPinchGestureRecognizer) {
             guard let camera = parent.cameraNode.camera else { return }
             
@@ -248,16 +320,15 @@ public struct SCNViewContainer: UIViewRepresentable {
             }
         }
         
-        // Gestione dello spostamento tramite pan
         @MainActor @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
+            
             let translation = gesture.translation(in: parent.scnView)
             
-            // Regola la posizione della camera in base alla direzione del pan
-            parent.cameraNode.position.x -= Float(translation.x) * 0.01 // Spostamento orizzontale
-            parent.cameraNode.position.z += Float(translation.y) * 0.01 // Spostamento verticale
+            parent.cameraNode.position.x -= Float(translation.x) * 0.01
+            parent.cameraNode.position.z += Float(translation.y) * 0.01
             
-            // Resetta la traduzione dopo ogni movimento
             gesture.setTranslation(.zero, in: parent.scnView)
+            
         }
     }
 }
@@ -349,7 +420,7 @@ class HandleTap: UIViewController {
 
 
 class RenderDelegate: NSObject, SCNSceneRendererDelegate {
-
+    
     var lastRenderer: SCNSceneRenderer!
     
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
