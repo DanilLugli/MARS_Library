@@ -104,11 +104,6 @@ struct FileHandler {
                 //Load ARWorldMap of Room
                 room.arWorldMap = getWorldMap(url: roomURL.appendingPathComponent("Maps").appendingPathComponent("\(room.name).map"))
                 
-                //                if let map = self.worldMap{
-                //                    loadWorldMap(worldMap: map, "\(room.name)")
-                //
-                //                }
-                
                 rooms.append(room)
             }
         }
@@ -199,8 +194,12 @@ struct FileHandler {
         var referenceMarkers: [ReferenceMarker] = []
         for fileURL in markerFiles {
             if fileURL.pathExtension.lowercased() == "jpg" || fileURL.pathExtension.lowercased() == "png" {
-                let marker = ReferenceMarker(imageName: fileURL.deletingPathExtension().lastPathComponent)
-                referenceMarkers.append(marker)
+                if let image = UIImage(contentsOfFile: fileURL.path) {
+                    let marker = ReferenceMarker(image: image, physicalWidth: 0.0)
+                    referenceMarkers.append(marker)
+                } else {
+                    print("Failed to load image from: \(fileURL.path)")
+                }
             }
         }
         

@@ -9,14 +9,13 @@ import Foundation
 
 public class ReferenceMarker: ObservableObject, Identifiable {
     public var id: UUID
-    public var imageName: String 
-    public var image: Image {
-        Image(imageName)
-    }
+    public var image: UIImage
+    public var physicalWidth: CGFloat  // width of the marker in meters
 
-    public init(imageName: String) {
+    public init(image: UIImage, physicalWidth: CGFloat) {
         self.id = UUID()
-        self.imageName = imageName
+        self.image = image
+        self.physicalWidth = physicalWidth
     }
 
     public enum CodingKeys: String, CodingKey {
