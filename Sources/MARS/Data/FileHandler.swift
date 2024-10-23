@@ -101,8 +101,17 @@ struct FileHandler {
                 }
                 
                 
-                //Load ARWorldMap of Room
-                room.arWorldMap = getWorldMap(url: roomURL.appendingPathComponent("Maps").appendingPathComponent("\(room.name).map"))
+                //Load ARWorldMap of Room, check file extension
+                let mapFileWithExtension = roomURL.appendingPathComponent("Maps").appendingPathComponent("\(room.name).map")
+                let mapFileWithoutExtension = roomURL.appendingPathComponent("Maps").appendingPathComponent(room.name)
+
+                if FileManager.default.fileExists(atPath: mapFileWithExtension.path) {
+                    room.arWorldMap = getWorldMap(url: mapFileWithExtension)
+                } else if FileManager.default.fileExists(atPath: mapFileWithoutExtension.path) {
+                    room.arWorldMap = getWorldMap(url: mapFileWithoutExtension)
+                } else {
+                    print("File ARWorldMap for \(room.name) not found.")
+                }
                 
                 rooms.append(room)
             }

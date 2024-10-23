@@ -154,7 +154,7 @@ public struct SCNViewContainer: UIViewRepresentable {
         
         var userLocation = generateSphereNode(UIColor(red: 0, green: 0, blue: 255, alpha: 1.0), 0.2)
         
-        userLocation.name = "userLocation"
+        userLocation.name = "POS"
         scnView.scene?.rootNode.addChildNode(userLocation)
     }
     
@@ -225,6 +225,99 @@ public struct SCNViewContainer: UIViewRepresentable {
                 
                 drawnNodes.insert(nodeName)
             }
+    }
+    
+    func updatePosition(_ pos: simd_float4x4, _ rototraslation: RotoTraslationMatrix?) {
+        //remove position node
+        scnView.scene?
+            .rootNode
+            .childNodes
+            .filter({ $0.name == "POS" })
+            .forEach({ $0.removeFromParentNode() })
+        
+        //add position node
+        var sphere = generateSphereNode(UIColor(red: 0, green: 0, blue: 255, alpha: 1.0), 0.2)
+        
+        //sphere.rotation.x = 0
+        //sphere.rotation.z = 0
+        //sphere.simdWorldPosition = simd_float3(pos.columns.3.x, pos.columns.3.y, pos.columns.3.z)
+        sphere.simdWorldTransform = pos
+        sphere.simdLocalRotate(by: simd_quatf(angle: GLKMathDegreesToRadians(90.0), axis: [0,0,1]))
+        
+        if let r = rototraslation {
+            
+            sphere = projectNode(sphere, r)
+            
+            //Model.shared.lastKnowPositionInGlobalSpace = sphere
+            
+            //draw origin in Floor map
+            scnView.scene?
+                .rootNode
+                .childNodes
+                .filter({ $0.name == "ORIGININGLOBALSPACE" }).forEach({ $0.removeFromParentNode() })
+            
+            var O = generateSphereNode(UIColor(red: 0, green: 255, blue: 0, alpha: 1.0), 0.2)
+            var origin = SCNNode()
+            origin.simdWorldTransform = simd_float4x4([1.0,0,0,0],[0,1.0,0,0],[0,0,1.0,0],[0,0,0,1.0])
+            O.simdWorldTransform = (origin.copy() as! SCNNode).simdWorldTransform
+            //O.simdLocalRotate(by: simd_quatf(angle: GLKMathDegreesToRadians(90.0), axis: [0,0,1]))
+            O = projectNode(O, r)
+            O.name = "ORIGININGLOBALSPACE"
+            scnView.scene?.rootNode.addChildNode(O)
+            
+            //draw last known position in global space
+//            if let lastKnowPositionInGlobalSpace = Model.shared.lastKnowPositionInGlobalSpace {
+//                scnView.scene?.rootNode.childNodes.filter({ $0.name == "POS2" }).forEach({ $0.removeFromParentNode() })
+//                var sphere2 = generateSphereNode(UIColor(red: 255, green: 0, blue: 0, alpha: 1.0), 0.2)
+//                sphere2.simdWorldTransform = lastKnowPositionInGlobalSpace.simdWorldTransform
+//
+//                sphere2.name = "POS2"
+//                scnView.scene?.rootNode.addChildNode(sphere2)
+//            }
+            
+        }
+        
+        sphere.name = "POS"
+        scnView.scene?.rootNode.addChildNode(sphere)
+    }
+    
+    func projectNode(_ sphere: SCNNode, _ r: RotoTraslationMatrix) -> SCNNode {
+        sphere.simdWorldTransform.columns.3 = sphere.simdWorldTransform.columns.3 * r.translation
+        
+        let r_Y = simd_float3x3([
+            simd_float3(r.r_Y.columns.0.x, r.r_Y.columns.0.y, r.r_Y.columns.0.z),
+            simd_float3(r.r_Y.columns.1.x, r.r_Y.columns.1.y, r.r_Y.columns.1.z),
+            simd_float3(r.r_Y.columns.2.x, r.r_Y.columns.2.y, r.r_Y.columns.2.z),
+        ])
+        
+        var rot = simd_float3x3([
+            simd_float3(sphere.simdWorldTransform.columns.0.x, sphere.simdWorldTransform.columns.0.y, sphere.simdWorldTransform.columns.0.z),
+            simd_float3(sphere.simdWorldTransform.columns.1.x, sphere.simdWorldTransform.columns.1.y, sphere.simdWorldTransform.columns.1.z),
+            simd_float3(sphere.simdWorldTransform.columns.2.x, sphere.simdWorldTransform.columns.2.y, sphere.simdWorldTransform.columns.2.z),
+        ])
+        
+        rot = r_Y * rot
+        
+        sphere.simdWorldTransform.columns.0 = simd_float4(
+            rot.columns.0.x,
+            rot.columns.0.y,
+            rot.columns.0.z,
+            sphere.simdWorldTransform.columns.0.z
+        )
+        sphere.simdWorldTransform.columns.1 = simd_float4(
+            rot.columns.1.x,
+            rot.columns.1.y,
+            rot.columns.1.z,
+            sphere.simdWorldTransform.columns.1.z
+        )
+        sphere.simdWorldTransform.columns.2 = simd_float4(
+            rot.columns.2.x,
+            rot.columns.2.y,
+            rot.columns.2.z,
+            sphere.simdWorldTransform.columns.2.z
+        )
+        
+        return sphere
     }
     
     public func makeUIView(context: Context) -> SCNView {

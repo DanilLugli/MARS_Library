@@ -26,7 +26,7 @@ public struct MapView: View {
                 
                 Spacer()
                 
-                locationProvider.scnView
+                locationProvider.scnFloorView
                     .frame(width: 320, height: 200)
                     .cornerRadius(20)
                     .padding(.bottom, 20)
