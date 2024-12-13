@@ -12,6 +12,7 @@ public class ReferenceMarker: ObservableObject, Identifiable, Decodable {
     public var id: UUID
     public var image: ARReferenceImage?
     public var width: CGFloat
+    public var room: String = ""
     public var name: String
     
     public init(id: UUID = UUID(), image: ARReferenceImage? = nil, width: CGFloat, name: String) {
@@ -35,7 +36,7 @@ public class ReferenceMarker: ObservableObject, Identifiable, Decodable {
         self.image = nil
     }
 
-    public func loadImage(from imageSource: UIImage) {
+    public func loadARReferenceImage(from imageSource: UIImage) {
         if let cgImage = imageSource.cgImage {
             self.image = ARReferenceImage(cgImage, orientation: .up, physicalWidth: self.width)
             self.image?.name = self.name
@@ -48,5 +49,4 @@ public class ReferenceMarker: ObservableObject, Identifiable, Decodable {
         var name: String
         var width: CGFloat
     }
-    
 }

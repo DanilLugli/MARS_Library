@@ -17,12 +17,12 @@ struct ARSCNViewContainer: UIViewRepresentable {
     
     typealias UIViewType = ARSCNView
     
+    @State var roomActive: String = ""
     private let arSCNView = ARSCNView(frame: .zero)
-    private let configuration: ARWorldTrackingConfiguration
+    private let configuration: ARWorldTrackingConfiguration = ARWorldTrackingConfiguration()
     private let delegate: ARSCNDelegate
     
     init(delegate: ARSCNDelegate) {
-        self.configuration = ARWorldTrackingConfiguration()
         self.delegate = delegate
         setupConfiguration()
     }
@@ -47,7 +47,7 @@ struct ARSCNViewContainer: UIViewRepresentable {
     }
 
     func loadScene(from url: URL) throws {
-        arSCNView.allowsCameraControl = true
+        //arSCNView.allowsCameraControl = true
         arSCNView.scene = try SCNScene(url: url)
         arSCNView.session.run(configuration)
     }
@@ -57,9 +57,23 @@ struct ARSCNViewContainer: UIViewRepresentable {
         arSCNView.debugOptions = [.showWorldOrigin, .showFeaturePoints]
     }
     
-    func startARSCNView(with worldMap: ARWorldMap) {
-        configuration.initialWorldMap = worldMap
-        arSCNView.debugOptions = [.showWorldOrigin]
-        arSCNView.session.run(configuration, options: [.removeExistingAnchors])
+    mutating func startARSCNView(with room: Room, for start: Bool) {
+        
+        switch start {
+        case true:
+            
+//            configuration.detectionImages = loadReferenceMarkers()
+            configuration.maximumNumberOfTrackedImages = 1
+            
+            arSCNView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
+
+        case false:
+            
+            configuration.initialWorldMap = room.arWorldMap
+            arSCNView.debugOptions = [.showWorldOrigin]
+            arSCNView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
+            self.roomActive = room.name
+        }
+        
     }
 }

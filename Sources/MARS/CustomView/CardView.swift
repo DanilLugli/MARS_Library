@@ -138,7 +138,7 @@ public struct CardView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .padding()
-        .frame(width: 400, height: 310)
+        .frame(width: 400, height: 350)
         .background(Color.blue.opacity(0.4))
         .cornerRadius(20)
     }

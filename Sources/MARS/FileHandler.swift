@@ -30,7 +30,6 @@ struct FileHandler {
                 let floors = try loadFloors(from: buildingURL)
                 let loadedBuilding = Building(name: buildingURL.lastPathComponent, floors: floors)
                 
-                // Assign loaded building to the building property
                 return loadedBuilding
                 //return
             }
@@ -97,17 +96,19 @@ struct FileHandler {
                     parentFloor: floor
                 )
                 
+                room.referenceMarkers.forEach { $0.room = room.name }
+                
                 if let usdzScene = try loadSceneIfAvailable(for: room, url: roomURL) {
                    
                     room.scene = usdzScene
-
                     room.planimetry?.loadPlanimetry(scene: usdzScene, roomsNode: nil, borders: true, nameCaller: room.name)
-                    
+    
                 }
                 
                 func countNodesRecursively(in node: SCNNode) -> Int {
                     return 1 + node.childNodes.reduce(0) { $0 + countNodesRecursively(in: $1) }
                 }
+                
                 func printNodeNamesRecursively(from node: SCNNode, depth: Int = 0) {
                     let indentation = String(repeating: "  ", count: depth)
                     print("\(indentation)- \(node.name ?? "Unnamed Node")")
@@ -280,11 +281,10 @@ struct FileHandler {
                     if FileManager.default.fileExists(atPath: imageURL.path),
                        let image = UIImage(contentsOfFile: imageURL.path) {
 
-                        newMarker.loadImage(from: image)
+                        newMarker.loadARReferenceImage(from: image)
                         imageFound = true
                         referenceMarkers.append(newMarker)
                         break
-                        
                     }
                 }
                 if !imageFound {

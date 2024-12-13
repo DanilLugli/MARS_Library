@@ -26,8 +26,50 @@ class ARSCNDelegate: NSObject, LocationSubject, ARSCNViewDelegate {
         sceneView = scnV
     }
     
+    func findRoomFromMarker(markerName: String) -> Room? {
+        // Supponiamo che tu abbia accesso a una lista di stanze nel delegate
+        guard let positionProvider = positionObservers.first as? PositionProvider else {
+            print("PositionProvider non disponibile")
+            return nil
+        }
+        
+        // Cerca una stanza che contenga il marker corrispondente
+        for floor in positionProvider.building.floors {
+            for room in floor.rooms {
+                if room.referenceMarkers.contains(where: { $0.name == markerName }) {
+                    print("Trovata stanza: \(room.name) per il marker: \(markerName)")
+                    return room
+                }
+            }
+        }
+
+        print("Nessuna stanza trovata per il marker: \(markerName)")
+        return nil
+    }
+    
     nonisolated func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
-        //
+        //Manage Marker finded
+        // TODO: what happen if two or more Markers are recognized?
+        
+//        if let imgId = imageAnchor.referenceImage.name {
+//            let markerFound = findMarkByID(markerID: imgId)
+//            if markerFound != nil {
+//                print("Found: \(markerFound!.id) at Location <\(markerFound!.location)>")
+//                //fixAROrigin(imageAnchor: imageAnchor, location: markerFound!.location)
+//            }
+//            else {
+//                print("Nothing found")
+//            }
+//        }
+    }
+    
+    public func session(_ session: ARSession, didAdd anchors: [ARAnchor]) {
+        guard let imageAnchor = anchors[0] as? ARImageAnchor else { return }
+        
+        if let markerName = imageAnchor.referenceImage.name{
+            let markerFound = findRoomFromMarker(markerName: markerName)
+            
+        }
     }
     
     nonisolated func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
@@ -40,32 +82,8 @@ class ARSCNDelegate: NSObject, LocationSubject, ARSCNViewDelegate {
             let camera = currentFrame.camera
             let trackingState = camera.trackingState
 
-//            switch trackingState {
-//            case .notAvailable:
-//                print("Tracking non disponibile")
-//                return
-//            case .limited(.relocalizing):
-//                print("Relocalizing...")
-//            default:
-//                break
-//            }
-
-            // Ottieni la trasformazione corrente della fotocamera
             var newPosition = camera.transform
-            
-            // Se è la prima posizione, applica una traslazione in avanti
-            if self.isFirstPosition {
-                print("Imposta la prima posizione a 10 metri in avanti")
-                let translationMatrix = simd_float4x4(
-                    SIMD4<Float>(1, 0, 0, 10),
-                    SIMD4<Float>(0, 1, 0, 0),
-                    SIMD4<Float>(0, 0, 1, 0),
-                    SIMD4<Float>(0, 0, 0, 1)
-                )
-                newPosition = simd_mul(newPosition, translationMatrix) // Applica la traslazione
-                self.isFirstPosition = false // Disabilita la modifica per le prossime posizioni
-            }
-
+            print("STATE: \(trackingState)\n\n")
             self.notifyLocationUpdate(newLocation: newPosition, newTrackingState: trackingStateToString(trackingState))
         }
     }
@@ -88,4 +106,6 @@ class ARSCNDelegate: NSObject, LocationSubject, ARSCNViewDelegate {
         }
         
     }
+    
+    
 }

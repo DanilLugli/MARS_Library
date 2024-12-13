@@ -11,7 +11,7 @@ import ARKit
 import RoomPlan
 import CoreMotion
 import ComplexModule
-import DeviceKit
+
 
 @available(iOS 16.0, *)
 @MainActor
@@ -43,18 +43,23 @@ public struct SCNViewContainer: UIViewRepresentable {
         
     @MainActor
     func loadPlanimetry(scene: SCNScene, roomsNode: [String]?, borders: Bool, nameCaller: String) {
-        // Log utile per il debugging
         print("NAME CALLER: \(nameCaller)")
         
-        // Resetta completamente la scena
-        self.scnView.scene = SCNScene() // Nuova scena vuota
-        print("Scene reset. Starting fresh.")
-
-        // Aggiungi la nuova scena
+        // Resetta e assegna la nuova scena
+        self.scnView.scene = SCNScene()
         self.scnView.scene = scene
         print("New scene set. Number of nodes in scene: \(self.scnView.scene?.rootNode.childNodes.count ?? 0)")
         
-        // Aggiungi il marker di origine
+        // Stampa il nome di tutti i nodi in rootNode.childNodes
+        if let childNodes = self.scnView.scene?.rootNode.childNodes {
+            for (index, node) in childNodes.enumerated() {
+                print("Node \(index + 1): \(node)")
+            }
+        } else {
+            print("No child nodes found.")
+        }
+        
+        // Aggiunge il marker di origine
         addOriginMarker(to: self.scnView.scene!)
         
         // Disegna il contenuto
@@ -63,8 +68,10 @@ public struct SCNViewContainer: UIViewRepresentable {
         // Imposta il centro di massa
         setMassCenter()
         
-        // Imposta la fotocamera
+        // Configura la camera
         setCamera()
+        
+        createAxesNode()
     }
     
     func addOriginMarker(to scene: SCNScene) {
@@ -206,135 +213,148 @@ public struct SCNViewContainer: UIViewRepresentable {
         let sphere = SCNSphere(radius: radius)
         let sphereNode = SCNNode()
         sphereNode.geometry = sphere
-        sphereNode.geometry?.firstMaterial?.diffuse.contents = color
+        sphereNode.geometry?.firstMaterial?.diffuse.contents = UIColor.blue
         
         let sphere2 = SCNSphere(radius: radius)
         let sphereNode2 = SCNNode()
         sphereNode2.geometry = sphere2
         var color2 = color
-        sphereNode2.geometry?.firstMaterial?.diffuse.contents = color2.withAlphaComponent(color2.cgColor.alpha - 0.3)
-        sphereNode2.position = SCNVector3(0, 0, -1)
+        sphereNode2.geometry?.firstMaterial?.diffuse.contents = UIColor.blue.withAlphaComponent(0.6)
+        sphereNode2.position = SCNVector3(0,    //y = altezza
+                                          0,    //x = orizzontale
+                                          -1)   //z = profondità
         
         let sphere3 = SCNSphere(radius: radius)
         let sphereNode3 = SCNNode()
         sphereNode3.geometry = sphere3
         var color3 = color
-        sphereNode3.geometry?.firstMaterial?.diffuse.contents = color2.withAlphaComponent(color2.cgColor.alpha - 0.6)
-        sphereNode3.position = SCNVector3(-0.5, 0, 0)
-        
+        sphereNode3.geometry?.firstMaterial?.diffuse.contents = UIColor.blue.withAlphaComponent(0.4)
+        sphereNode3.position = SCNVector3(0,    //y = altezza
+                                          -0.5, //x = orizzontale a sx negativo
+                                          0)    //z = profondità
         
         houseNode.addChildNode(sphereNode)
         houseNode.addChildNode(sphereNode2)
         houseNode.addChildNode(sphereNode3)
+        //houseNode.worldPosition = SCNVector3(0.0, 3.0, 0.0)
         return houseNode
     }
+
+    func createAxesNode(length: CGFloat = 1.0, radius: CGFloat = 0.02) {
+        let axisNode = SCNNode()
+        
+        // X Axis (Red)
+        let xAxis = SCNNode(geometry: SCNCylinder(radius: radius, height: length))
+        xAxis.geometry?.firstMaterial?.diffuse.contents = UIColor.red
+        xAxis.position = SCNVector3(length / 2, 0, 0) // Offset by half length
+        xAxis.eulerAngles = SCNVector3(0, 0, Float.pi / 2) // Rotate cylinder along X-axis
+        
+        // Y Axis (Green)
+        let yAxis = SCNNode(geometry: SCNCylinder(radius: radius, height: length))
+        yAxis.geometry?.firstMaterial?.diffuse.contents = UIColor.green
+        yAxis.position = SCNVector3(0, length / 2, 0) // Offset by half length
+        
+        // Z Axis (Blue)
+        let zAxis = SCNNode(geometry: SCNCylinder(radius: radius, height: length))
+        zAxis.geometry?.firstMaterial?.diffuse.contents = UIColor.blue
+        zAxis.position = SCNVector3(0, 0, length / 2) // Offset by half length
+        zAxis.eulerAngles = SCNVector3(Float.pi / 2, 0, 0) // Rotate cylinder along Z-axis
+        
+        // Add axes to parent node
+        axisNode.addChildNode(xAxis)
+        axisNode.addChildNode(yAxis)
+        axisNode.addChildNode(zAxis)
+        self.scnView.scene?.rootNode.addChildNode(axisNode)
+        
+    }
     
-//    @MainActor func addRoomLocationNode() {
-//        
-//        if scnView.scene == nil {
-//            scnView.scene = SCNScene()
-//        }
-//        
-//        let sphere = SCNSphere(radius: 1.0)
-//        
-//        var userLocation = generatePositionNode(UIColor(red: 0, green: 0, blue: 255, alpha: 1.0), 0.2)
-//        
-//        userLocation.name = "POS"
-//        scnView.scene?.rootNode.addChildNode(userLocation)
-//    }
-//    
-//    @MainActor func addFloorLocationNode() {
-//        
-//        if scnView.scene == nil {
-//            scnView.scene = SCNScene()
-//        }
-//        
-//        let sphere = SCNSphere(radius: 1.0)
-//        
-//        var userLocation = generatePositionNode(UIColor(red: 255, green: 0, blue: 0, alpha: 1.0), 0.2)
-//        
-//        userLocation.name = "POS_FLOOR"
-//        scnView.scene?.rootNode.addChildNode(userLocation)
-//    }
-//
+    @MainActor func addRoomLocationNode() {
+        
+        if scnView.scene == nil {
+            scnView.scene = SCNScene()
+        }
+        
+        var userLocation = generatePositionNode(UIColor(red: 0, green: 0, blue: 255, alpha: 1.0), 0.2)
+        userLocation.simdWorldTransform = simd_float4x4(0)
+        userLocation.name = "POS_ROOM"
+        scnView.scene?.rootNode.addChildNode(userLocation)
+    }
+    
+    @MainActor func addFloorLocationNode() {
+        
+        if scnView.scene == nil {
+            scnView.scene = SCNScene()
+        }
+        
+        let sphere = SCNSphere(radius: 1.0)
+        
+        var userLocation = generatePositionNode(UIColor(red: 255, green: 0, blue: 0, alpha: 1.0), 0.2)
+        userLocation.simdWorldTransform = simd_float4x4(0)
+        userLocation.name = "POS_FLOOR"
+        scnView.scene?.rootNode.addChildNode(userLocation)
+    }
     
     func drawContent(roomsNode: [String]?, borders: Bool) {
+        let excludedNames = ["Room", "Floor0", "Geom", "__selected__"]
         var drawnNodes = Set<String>()
-        
-        scnView.scene?
-            .rootNode
-            .childNodes(passingTest: { node, _ in
-                node.name != nil &&
-                node.name! != "Room" &&
-                node.name! != "Floor0" &&
-                node.name! != "Geom" &&
-                //node.name! != "Lab" &&
-                String(node.name!.suffix(4)) != "_grp" &&
-                node.name! != "__selected__"
-            })
-            .forEach { node in
-                guard let nodeName = node.name else { return }
-                let material = SCNMaterial()
-                
-                if nodeName == "Floor0" {
-                    material.diffuse.contents = UIColor.green
-                } else {
-                    
-                    material.diffuse.contents = UIColor.black
-                    
-                    if nodeName.prefix(5) == "Floor" {
-                        material.diffuse.contents = UIColor.white.withAlphaComponent(0.2)
-                    }
-                    if ((roomsNode?.contains(nodeName)) != nil){
-                        material.diffuse.contents = UIColor.green.withAlphaComponent(0.1)
-                    }
-                    if nodeName.prefix(6) == "Transi" {
-                        material.diffuse.contents = UIColor.white
-                    }
-                    if nodeName.prefix(4) == "Door" {
-                        material.diffuse.contents = UIColor.systemGray5
-                    }
-                    if nodeName.prefix(4) == "Wall" {
-                        material.diffuse.contents = UIColor.black
-                    }
-                    if nodeName.prefix(4) == "Open" {
-                        material.diffuse.contents = UIColor.systemGray5
-                    }
-                    if nodeName.prefix(4) == "Tabl" {
-                        material.diffuse.contents = UIColor.brown
-                    }
-                    if nodeName.prefix(4) == "Chai" {
-                        material.diffuse.contents = UIColor.brown.withAlphaComponent(0.4)
-                    }
-                    if nodeName.prefix(4) == "Stor" {
-                        material.diffuse.contents = UIColor.systemGray2
-                    }
-                    if nodeName.prefix(4) == "Sofa" {
-                        material.diffuse.contents = UIColor(red: 0.0, green: 0.0, blue: 0.5, alpha: 0.6)
-                    }
-                    if nodeName.prefix(4) == "Tele" {
-                        material.diffuse.contents = UIColor.orange
-                    }
-                    material.lightingModel = .physicallyBased
-                }
-                
-                node.geometry?.materials = [material]
-                
-                if borders {
-                    node.scale.x = node.scale.x < 0.2 ? node.scale.x + 0.1 : node.scale.x
-                    node.scale.z = node.scale.z < 0.2 ? node.scale.z + 0.1 : node.scale.z
-                    node.scale.y = (node.name!.prefix(4) == "Wall") ? 0.1 : node.scale.y
-                }
-                
-                drawnNodes.insert(nodeName)
-            }
+
+        scnView.scene?.rootNode.childNodes(passingTest: { node, _ in
+            guard let name = node.name else { return false }
+            return !excludedNames.contains(name) && !name.hasSuffix("_grp")
+        })
+        .forEach { node in
+            guard let nodeName = node.name else { return }
+
+            resetNodeMaterial(node)
+
+            node.geometry?.materials = [materialForNode(named: nodeName, roomsNode: roomsNode)]
+
+            drawnNodes.insert(nodeName)
+        }
+    }
+
+    private func materialForNode(named name: String, roomsNode: [String]?) -> SCNMaterial {
+        let material = SCNMaterial()
+        switch name {
+        case "Floor0":
+            material.diffuse.contents = UIColor.white.withAlphaComponent(0)
+        case _ where name.hasPrefix("Floor"):
+            material.diffuse.contents = UIColor.white.withAlphaComponent(0.2)
+        case _ where roomsNode?.contains(name) == true:
+            material.diffuse.contents = UIColor.blue.withAlphaComponent(0)
+//        case _ where name.hasPrefix("Transi"):
+//            material.diffuse.contents = UIColor.white
+//        case _ where name.hasPrefix("Door") && name.hasPrefix("Open"):
+//            material.diffuse.contents = UIColor.white
+        case _ where name.hasPrefix("Wall"):
+            material.diffuse.contents = UIColor.black
+//        case _ where name.hasPrefix("Tabl"):
+//            material.diffuse.contents = UIColor.systemBrown
+//        case _ where name.hasPrefix("Chai"):
+//            material.diffuse.contents = UIColor.brown
+//        case _ where name.hasPrefix("Stor"):
+//            material.diffuse.contents = UIColor.gray
+//        case _ where name.hasPrefix("Sofa"):
+//            material.diffuse.contents = UIColor.blue
+//        case _ where name.hasPrefix("Tele"):
+//            material.diffuse.contents = UIColor.orange
+        default:
+            material.diffuse.contents = UIColor.black
+        }
+        material.lightingModel = .physicallyBased
+        return material
+    }
+
+    private func resetNodeMaterial(_ node: SCNNode) {
+        // Reimposta il materiale del nodo eliminando eventuali trasparenze o modifiche precedenti
+        node.geometry?.materials = [SCNMaterial()] // Crea un materiale vuoto come reset
     }
     
     @MainActor func updateInversePosition(_ newPosition: simd_float4x4, _ rotoTraslation: RotoTraslationMatrix?) {
         var floorPositionNode = addLastPositionMarker()
         
         if let r = rotoTraslation {
-            if let floorNodes = scnView.scene?.rootNode.childNodes.filter({ $0.name == "Originini" }), !floorNodes.isEmpty {
+            if let floorNodes = scnView.scene?.rootNode.childNodes.filter({ $0.name == "POS_ROOM" }), !floorNodes.isEmpty {
                 floorNodes.forEach { $0.removeFromParentNode() }
             } else {
                 print("Nessun nodo trovato con nome 'POS_FLOOR' per la rimozione.")
@@ -346,47 +366,34 @@ public struct SCNViewContainer: UIViewRepresentable {
             scnView.scene?.rootNode.addChildNode(floorPositionNode)
     }
     
-    @MainActor func updatePosition(_ newPosition: simd_float4x4, _ rotoTraslation: RotoTraslationMatrix?) {
+    @MainActor func updatePosition(_ newPosition: simd_float4x4, _ matrix: RotoTraslationMatrix?, floor: Floor) {
         
-        if rotoTraslation == nil {
-            if let roomNodes = scnView.scene?.rootNode.childNodes.filter({ $0.name == "POS_ROOM" }), !roomNodes.isEmpty {
-                roomNodes.forEach { $0.removeFromParentNode() }
-            } else {
-                print("Nessun nodo trovato con nome 'POS' per la rimozione.")
-            }
-        }
-        if rotoTraslation == nil{
+        if matrix == nil {
+//            if let roomNodes = scnView.scene?.rootNode.childNodes.filter({ $0.name == "POS_ROOM" }), !roomNodes.isEmpty {
+//                roomNodes.forEach { $0.removeFromParentNode() }
+//            } else {
+//                print("Nessun nodo trovato con nome 'POS' per la rimozione.")
+//            }
+//            
+//            var roomPositionNode = generatePositionNode(UIColor(red: 0, green: 0, blue: 255, alpha: 1.0), 0.2)
+            scnView.scene?.rootNode.childNodes.first(where: { $0.name == "POS_ROOM" })?.simdWorldTransform = newPosition
+            //roomPositionNode.simdWorldTransform = newPosition
+            //roomPositionNode.simdLocalRotate(by: simd_quatf(angle: GLKMathDegreesToRadians(90.0), axis: [0,0,1]))
             
-            
-            var roomPositionNode = generatePositionNode(UIColor(red: 0, green: 0, blue: 255, alpha: 1.0), 0.2)
-            
-            roomPositionNode.simdWorldTransform = newPosition
-            roomPositionNode.simdLocalRotate(by: simd_quatf(angle: GLKMathDegreesToRadians(90.0), axis: [0,0,1]))
-            
-            roomPositionNode.name = "POS_ROOM"
-            scnView.scene?.rootNode.addChildNode(roomPositionNode)
+//            roomPositionNode.name = "POS_ROOM"
+//            scnView.scene?.rootNode.addChildNode(roomPositionNode)
             
         }
         
-        if let r = rotoTraslation {
+        if let r = matrix {
             
-            //roomPositionNode = projectFloorPosition(roomPositionNode, r)
-            
-            if let floorNodes = scnView.scene?.rootNode.childNodes.filter({ $0.name == "POS_FLOOR" }), !floorNodes.isEmpty {
-                floorNodes.forEach { $0.removeFromParentNode() }
-            } else {
-                print("Nessun nodo trovato con nome 'POS_FLOOR' per la rimozione.")
-            }
-            
-            var floorPositionNode = generatePositionNode(UIColor(red: 0, green: 255, blue: 0, alpha: 1.0), 0.2)
-            
-            floorPositionNode.simdWorldTransform = newPosition
-            floorPositionNode.simdLocalRotate(by: simd_quatf(angle: GLKMathDegreesToRadians(90.0), axis: [0,0,1]))
-            
-            applyRotoTraslation(to: floorPositionNode, with: r)
-            
-            floorPositionNode.name = "POS_FLOOR"
-            scnView.scene?.rootNode.addChildNode(floorPositionNode)
+            updateFloorPositionNode(in: scnView,
+                                    newPosition: newPosition,
+                                    withColor: UIColor.green,
+                                    size: 0.2,
+                                    rotationAngle: 90.0,
+                                    rotationAxis: [0, 0, 1],
+                                    rotoTranslationMatrix: matrix!, floor: floor)
         }
     }
     
@@ -536,4 +543,7 @@ class RenderDelegate: NSObject, @preconcurrency SCNSceneRendererDelegate {
         lastRenderer = renderer
     }
 }
+
+
+
 

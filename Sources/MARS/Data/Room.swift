@@ -104,7 +104,7 @@ public class Room: @preconcurrency Decodable, Identifiable, ObservableObject, Eq
         // Set scene and sceneObjects as default values because they are not decodable
         self.referenceMarkers = []
         self.scene = SCNScene()
-        self.planimetry = SCNViewContainer() // Inizializza una scena vuota
+        self.planimetry = nil
         self.sceneObjects = []  // Inizializza un array vuoto per gli oggetti della scena
         self.sceneAnchor = []
         self.parentFloor = nil  // La parentFloor non viene decodificata direttamente
