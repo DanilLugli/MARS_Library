@@ -76,7 +76,7 @@ public struct MapView: View {
                                             .italic()
                                     }
                                     
-                                    locationProvider.scnRoomView
+                                    locationProvider.activeRoomPlanimetry
                                         .frame(width: 185, height: 200)
                                         .cornerRadius(20)
                                         .padding(.bottom, 20)

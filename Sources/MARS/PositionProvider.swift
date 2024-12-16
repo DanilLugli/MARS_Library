@@ -104,7 +104,7 @@ public class PositionProvider: PositionSubject, LocationObserver, @preconcurrenc
         addRoomLocationNode(room: self.activeRoom)
         addFloorLocationNode(floor: self.activeFloor)
         
-        self.arSCNView.startARSCNView(with: self.activeRoom, for: true)
+        self.arSCNView.startARSCNView(with: self.activeRoom, for: false)
     }
 
     @MainActor public func showMap() -> some View {
@@ -195,7 +195,7 @@ public class PositionProvider: PositionSubject, LocationObserver, @preconcurrenc
         switchingRoom = false
         
         scnRoomView.updatePosition(self.position, nil, floor: self.activeFloor)
-        scnFloorView.updatePosition(self.position, self.activeFloor.associationMatrix[self.activeRoom.name], floor: self.activeFloor)
+        scnFloorView.updatePosition(self.position, self.activeFloor.associationMatrix["Corridoio"], floor: self.activeFloor)
         
         //var roto = RotoTraslationMatrix(name: "Corridoio", translation: simd_float4x4(0), r_Y: simd_float4x4(0))
         //scnFloorView.updatePosition(self.position, roto)
@@ -204,7 +204,7 @@ public class PositionProvider: PositionSubject, LocationObserver, @preconcurrenc
         let posFloorNode = scnFloorView.scnView.scene?.rootNode.childNode(withName: "POS_FLOOR", recursively: true)
         self.lastFloorPosition = posFloorNode?.simdWorldTransform ?? simd_float4x4(0)
         
-        checkSwitchRoom()
+        //checkSwitchRoom()
         
 //        }
         
@@ -292,13 +292,9 @@ public class PositionProvider: PositionSubject, LocationObserver, @preconcurrenc
             if let planimetry = activeRoom.planimetry {
                 print("Change Room from: \(prevRoom.name) to: \(activeRoom.name)")
 
-                self.scnRoomView = SCNViewContainer()
-                self.scnRoomView.loadPlanimetry(
-                    scene: activeRoom.scene,
-                    roomsNode: [],
-                    borders: true,
-                    nameCaller: activeRoom.name
-                )
+                DispatchQueue.main.async {
+                    self.activeRoomPlanimetry = planimetry
+                }
             }
             
             //Upload new ARSCNView

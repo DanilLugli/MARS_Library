@@ -20,7 +20,7 @@ public class Room: @preconcurrency Decodable, Identifiable, ObservableObject, Eq
     public var referenceMarkers: [ReferenceMarker]
     public var transitionZones: [TransitionZone]
     public var scene: SCNScene
-    public var planimetry: SCNViewContainer?
+    @Published public var planimetry: SCNViewContainer?
     public var sceneObjects: [SCNNode]
     public var sceneAnchor: [ARAnchor]
     public var arWorldMap: ARWorldMap?

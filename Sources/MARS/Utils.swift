@@ -55,8 +55,10 @@ public func trackingStateToString(_ state: ARCamera.TrackingState) -> String {
 //    floor.scene.rootNode.addChildNode(floorPositionNode)
 //    print("PARENT OF: \(floorPositionNode.name)")
 //    print(floorPositionNode.parent)
-    scnView.scene?.rootNode.childNodes.first(where: { $0.name == "POS_FLOOR" })?.simdWorldTransform = newPosition
-    applyRotoTraslation(to: (scnView.scene?.rootNode.childNodes.first(where: { $0.name == "POS_FLOOR" }) as? SCNNode)!, with: r)
+    
+    var nodePosition = scnView.scene?.rootNode.childNodes.first(where: { $0.name == "POS_FLOOR" })
+    nodePosition?.simdWorldTransform = newPosition
+    applyRotoTraslation(to: nodePosition!, with: r)
 
 }
 
@@ -74,19 +76,23 @@ public func trackingStateToString(_ state: ARCamera.TrackingState) -> String {
     sphereNode2.geometry = sphere2
     var color2 = color
     sphereNode2.geometry?.firstMaterial?.diffuse.contents = color2.withAlphaComponent(color2.cgColor.alpha - 0.3)
-    sphereNode2.position = SCNVector3(0, 0, -1)
+    sphereNode2.position = SCNVector3(0,
+                                      0,
+                                      -1) //Profondità = z
     
     let sphere3 = SCNSphere(radius: radius)
     let sphereNode3 = SCNNode()
     sphereNode3.geometry = sphere3
     var color3 = color
     sphereNode3.geometry?.firstMaterial?.diffuse.contents = color2.withAlphaComponent(color2.cgColor.alpha - 0.6)
-    sphereNode3.position = SCNVector3(0, -0.5, 0)
-    
+    sphereNode3.position = SCNVector3(0, //Laterale = x
+                                       -0.5,
+                                      0)
     
     houseNode.addChildNode(sphereNode)
     houseNode.addChildNode(sphereNode2)
     houseNode.addChildNode(sphereNode3)
+    houseNode.worldPosition.y = 2
     return houseNode
 }
 
@@ -102,6 +108,8 @@ func applyRotoTraslation(to node: SCNNode, with rotoTraslation: RotoTraslationMa
         rotoTraslation.translation.columns.3.z  //Profondità
     )
     
+    node.simdWorldPosition = translationVector + node.simdWorldPosition
+    
     print("APPLY RotoTraslation")
     print("[Roto]:")
     printSimdFloat4x4(rotoTraslation.r_Y)
@@ -113,10 +121,10 @@ func applyRotoTraslation(to node: SCNNode, with rotoTraslation: RotoTraslationMa
     
     let rotationQuaternion = simd_quatf(rotationMatrix)
 
-    
-    node.simdWorldPosition = translationVector + node.simdWorldPosition
-    //node.simdWorldOrientation = node.simdWorldOrientation * rotationQuaternion
     node.simdWorldOrientation = rotationQuaternion * node.simdWorldOrientation
+    
+    //node.simdWorldOrientation = node.simdWorldOrientation * rotationQuaternion
+    
     //node.simdWorldPosition.z  = 0
     print("PARENT OF: \(node.name)")
     print(node.parent)
@@ -182,8 +190,8 @@ func addRoomLocationNode(room: Room) {
         room.scene = SCNScene()
     }
     
-    var userLocation = generatePositionNode(UIColor(red: 0, green: 0, blue: 255, alpha: 1.0), 0.2)
-    userLocation.simdWorldTransform = simd_float4x4(0)
+    var userLocation = generatePositionNode(UIColor(red: 0, green: 255, blue: 0, alpha: 1.0), 0.2)
+    userLocation.simdWorldPosition = simd_float3(0.0, 0.0, 0.0)
     userLocation.name = "POS_ROOM"
     room.scene.rootNode.addChildNode(userLocation)
 }
@@ -230,30 +238,26 @@ func addRoomNodesToScene(floor: Floor) {
                 roomNode.geometry?.materials = [material]
                 
                 
-//                let size = getNodeSize(node: roomNode)
-//                print("Dimensioni del nodo prima della scala - Larghezza: \(size.x), Altezza: \(size.y), Lunghezza: \(size.z)")
-//
-//                let desiredHeight: Float = 4.0
-//                let currentHeight = size.y
-//
-//                if currentHeight != 0 {
-//                    let scaleFactor = desiredHeight / currentHeight
-//
-//                    // Applica lo scaling lungo l'asse Y per impostare l'altezza desiderata
-//                    roomNode.scale = SCNVector3(
-//                        roomNode.scale.x,
-//                        roomNode.scale.y,
-//                        roomNode.scale.z
-//                    )
-//
-//                    // Verifica le nuove dimensioni dopo lo scaling
-//                    let newSize = getNodeSize(node: roomNode)
-//                    print("Dimensioni del nodo dopo la scala - Larghezza: \(newSize.x), Altezza: \(newSize.y), Lunghezza: \(newSize.z)")
-//                } else {
-//                    print("Altezza corrente zero, impossibile scalare il nodo.")
-//                }
-//
-//                // **Fine delle modifiche**
+                let size = getNodeSize(node: roomNode)
+                print("Dimensioni del nodo prima della scala - Larghezza: \(size.x), Altezza: \(size.y), Lunghezza: \(size.z)")
+
+                let desiredHeight: Float = 4.0
+                let currentHeight = size.y
+
+                if currentHeight != 0 {
+                    let scaleFactor = desiredHeight / currentHeight
+
+                    roomNode.scale = SCNVector3(
+                        roomNode.scale.x,
+                        roomNode.scale.y,
+                        roomNode.scale.z
+                    )
+
+                    let newSize = getNodeSize(node: roomNode)
+                    print("Dimensioni del nodo dopo la scala - Larghezza: \(newSize.x), Altezza: \(newSize.y), Lunghezza: \(newSize.z)")
+                } else {
+                    print("Altezza corrente zero, impossibile scalare il nodo.")
+                }
 
                 floor.scene.rootNode.addChildNode(roomNode)
                 

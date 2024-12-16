@@ -46,34 +46,28 @@ struct ARSCNViewContainer: UIViewRepresentable {
         arSCNView.automaticallyUpdatesLighting = true
     }
 
-    func loadScene(from url: URL) throws {
-        //arSCNView.allowsCameraControl = true
-        arSCNView.scene = try SCNScene(url: url)
-        arSCNView.session.run(configuration)
-    }
-    
     func startPlaneDetection() {
-        arSCNView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
         arSCNView.debugOptions = [.showWorldOrigin, .showFeaturePoints]
+        arSCNView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
     }
     
     mutating func startARSCNView(with room: Room, for start: Bool) {
-        
         switch start {
         case true:
-            
-//            configuration.detectionImages = loadReferenceMarkers()
             configuration.maximumNumberOfTrackedImages = 1
-            
             arSCNView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
+            
+            // Reimposta le opzioni di debug dopo l'avvio
+            arSCNView.debugOptions = [.showWorldOrigin, .showFeaturePoints]
 
         case false:
-            
             configuration.initialWorldMap = room.arWorldMap
-            arSCNView.debugOptions = [.showWorldOrigin]
             arSCNView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
+            
+
+            arSCNView.debugOptions = [.showWorldOrigin, .showFeaturePoints]
+            
             self.roomActive = room.name
         }
-        
     }
 }
