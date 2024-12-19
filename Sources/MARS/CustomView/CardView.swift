@@ -74,15 +74,16 @@ public struct CardView: View {
                         HStack(spacing: 0) {
                             Text("Switching Room: ")
                             Text("Switching to \(nodeContainedIn)...")
-                                .foregroundColor(.green)
+                                .foregroundColor(.red)
                                 .italic()
                         }
+                        
                     case false:
                         HStack(spacing: 0) {
                             Text("Switching Room: ")
                             Text("False")
-                                .italic()
-                                .foregroundColor(.red)
+                                .bold()
+                                .foregroundColor(.green)
                         }
                     }
                     

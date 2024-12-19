@@ -7,7 +7,7 @@ public struct MapView: View {
     @StateObject private var locationProvider: PositionProvider
     
     @State private var hasStarted: Bool = false
-    @State private var debug: Bool = false
+    @State private var debug: Bool = true
     @State private var roomMap: SCNViewContainer = SCNViewContainer()
     
     public init(locationProvider: PositionProvider) {
@@ -31,12 +31,14 @@ public struct MapView: View {
                         CardView(
                             buildingMap: locationProvider.building.name,
                             floorMap: locationProvider.activeFloor.name,
+                            
                             roomMap: locationProvider.arSCNView.roomActive,
-                            matrixMap: locationProvider.activeFloor.associationMatrix[locationProvider.activeRoom.name]?.name ?? "ERROR Active Room",
+                            matrixMap: locationProvider.roomMatrixActive,
                             actualPosition: locationProvider.position,
                             trackingState: locationProvider.trackingState,
                             nodeContainedIn: locationProvider.nodeContainedIn,
                             switchingRoom: locationProvider.switchingRoom
+                            
                         )
                         .padding(.top, 60)
                         
@@ -76,7 +78,7 @@ public struct MapView: View {
                                             .italic()
                                     }
                                     
-                                    locationProvider.activeRoomPlanimetry
+                                    locationProvider.scnRoomView
                                         .frame(width: 185, height: 200)
                                         .cornerRadius(20)
                                         .padding(.bottom, 20)
@@ -141,7 +143,7 @@ public struct MapView: View {
             }
             .onChange(of: locationProvider.activeRoom.name) {
                 if let planimetry = locationProvider.activeRoom.planimetry {
-                    roomMap.loadPlanimetry(scene: locationProvider.activeRoom.scene, roomsNode: nil, borders: true, nameCaller: "")
+                    roomMap.loadPlanimetry(scene: locationProvider.activeRoom, roomsNode: nil, borders: true, nameCaller: "")
                 }
             }
         } else {

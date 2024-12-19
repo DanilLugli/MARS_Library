@@ -20,18 +20,20 @@ public class Floor: Equatable, Hashable, @preconcurrency Decodable{
     public var rooms: [Room]
     public var sceneObjects: [SCNNode]
     public var scene: SCNScene
+    public var floorURL: URL
 
-    public init(id: UUID = UUID(), name: String, associationMatrix: [String: RotoTraslationMatrix], rooms: [Room], sceneObjects: [SCNNode], scene: SCNScene) {
+    public init(id: UUID = UUID(), name: String, associationMatrix: [String: RotoTraslationMatrix], rooms: [Room], sceneObjects: [SCNNode], scene: SCNScene, floorURL: URL) {
         self.id = id
         self.name = name
         self.associationMatrix = associationMatrix
         self.rooms = rooms
         self.sceneObjects = sceneObjects
         self.scene = scene
+        self.floorURL = floorURL
     }
     
     public convenience init() {
-            self.init(id: UUID(), name: "", associationMatrix: [:], rooms: [], sceneObjects: [], scene: SCNScene())
+        self.init(id: UUID(), name: "", associationMatrix: [:], rooms: [], sceneObjects: [], scene: SCNScene(), floorURL: URL(fileURLWithPath: ""))
         }
     
     public func getRoom(byName name: String) -> Room? {
@@ -70,5 +72,6 @@ public class Floor: Equatable, Hashable, @preconcurrency Decodable{
 
         self.sceneObjects = []
         self.scene = SCNScene()
+        self.floorURL = URL(fileURLWithPath: "")
     }
 }

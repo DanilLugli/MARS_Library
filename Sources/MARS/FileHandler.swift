@@ -54,15 +54,16 @@ struct FileHandler {
                     associationMatrix: try loadAssociationMatrix(from: floorURL) ?? [:],
                     rooms: [],
                     sceneObjects: [],
-                    scene: scene
+                    scene: scene,
+                    floorURL: floorURL
                 )
                 
                 floor.rooms = try loadRooms(from: floorURL, floor: floor)
                 
-                if let usdzScene = try loadSceneIfAvailable(for: floor, url: floorURL) {
-                    floor.scene = usdzScene
-                }
-                
+//                if let usdzScene = try loadSceneIfAvailable(for: floor, url: floorURL) {
+//                    floor.scene = usdzScene
+//                }
+//                
                 floors.append(floor)
             }
         }
@@ -101,7 +102,7 @@ struct FileHandler {
                 if let usdzScene = try loadSceneIfAvailable(for: room, url: roomURL) {
                    
                     room.scene = usdzScene
-                    room.planimetry?.loadPlanimetry(scene: usdzScene, roomsNode: nil, borders: true, nameCaller: room.name)
+                    //room.planimetry?.loadPlanimetry(scene: room, roomsNode: nil, borders: true, nameCaller: room.name)
     
                 }
                 

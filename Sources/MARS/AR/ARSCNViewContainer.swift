@@ -17,7 +17,7 @@ struct ARSCNViewContainer: UIViewRepresentable {
     
     typealias UIViewType = ARSCNView
     
-    @State var roomActive: String = ""
+    var roomActive: String = ""
     private let arSCNView = ARSCNView(frame: .zero)
     private let configuration: ARWorldTrackingConfiguration = ARWorldTrackingConfiguration()
     private let delegate: ARSCNDelegate

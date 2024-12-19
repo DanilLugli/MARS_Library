@@ -30,7 +30,9 @@ public class PositionProvider: PositionSubject, LocationObserver, @preconcurrenc
     @Published var position: simd_float4x4 = simd_float4x4(0)
     @Published var trackingState: String = ""
     @Published var nodeContainedIn: String = ""
+    @Published var roomMatrixActive: String = ""
     @Published var switchingRoom: Bool = false
+    @Published var angleGradi: String = ""
 
     @Published var arSCNView: ARSCNViewContainer
     @Published var scnRoomView: SCNViewContainer = SCNViewContainer()
@@ -78,36 +80,31 @@ public class PositionProvider: PositionSubject, LocationObserver, @preconcurrenc
                 }
             }
         }
-        
-        // All'interno del tuo init o di una funzione di configurazione
-//        motionManager.deviceMotionUpdateInterval = 0.02 // Aggiorna ogni 20 ms
-//        motionManager.startDeviceMotionUpdates(using: .xArbitraryCorrectedZVertical)
-        
+          
         self.delegate.addLocationObserver(positionObserver: self)
     }
 
     public func start() {
 
         self.activeFloor = self.building.floors[0]
-        
-        addRoomNodesToScene(floor: self.activeFloor)
-        
+                
         let roomNodes = self.activeFloor.rooms.map { $0.name }
         
-        self.activeRoom = self.activeFloor.rooms[2]
+        self.activeRoom = self.activeFloor.rooms[0]
+        self.roomMatrixActive = self.activeRoom.name
         self.activeRoomPlanimetry = self.activeRoom.planimetry
         self.prevRoom = self.activeRoom
         
-        self.scnFloorView.loadPlanimetry(scene: activeFloor.scene, roomsNode: roomNodes  ,borders: true, nameCaller: activeFloor.name)
-        self.scnRoomView.loadPlanimetry(scene: activeRoom.scene, roomsNode: nil, borders: true, nameCaller: activeRoom.name)
-
-        addRoomLocationNode(room: self.activeRoom)
-        addFloorLocationNode(floor: self.activeFloor)
+        self.scnFloorView.loadPlanimetry(scene: self.activeFloor, roomsNode: roomNodes  ,borders: true, nameCaller: activeFloor.name)
+        self.scnRoomView.loadPlanimetry(scene: self.activeRoom, roomsNode: nil, borders: true, nameCaller: activeRoom.name)
         
+        addRoomNodesToScene(floor: self.activeFloor, scene: self.scnFloorView.scnView.scene!)
+
         self.arSCNView.startARSCNView(with: self.activeRoom, for: false)
     }
 
-    @MainActor public func showMap() -> some View {
+    @MainActor
+    public func showMap() -> some View {
         return MapView(locationProvider: self)
     }
 
@@ -121,46 +118,32 @@ public class PositionProvider: PositionSubject, LocationObserver, @preconcurrenc
         self.positionObservers = self.positionObservers.filter { $0.id != positionObserver.id }
     }
     
-    func findPositionContainer(for positionVector: SCNVector3) -> SCNNode? {
-        let roomNames = Set(activeFloor.rooms.map { $0.name })
+    func visualizeRaycast(from origin: SCNVector3, to end: SCNVector3, in scene: SCNScene, color: UIColor = .red) {
+        // Calcola il vettore di direzione
+        let direction = SCNVector3(end.x - origin.x, end.y - origin.y, end.z - origin.z)
+        
+        // Calcola la lunghezza del raycast
+        let length = sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z)
+        
+        // Crea una geometria cilindrica per rappresentare il raycast
+        let cylinder = SCNCylinder(radius: 0.02, height: CGFloat(length))
+        cylinder.firstMaterial?.diffuse.contents = color
 
-        for roomNode in activeFloor.scene.rootNode.childNodes {
-            guard let roomName = roomNode.name, roomNames.contains(roomName) else {
-                continue
-            }
-            
-            let localPosition = roomNode.convertPosition(positionVector, from: nil)
-
-            if isPositionContained(localPosition, in: roomNode) {
-                print("Position is contained in room: \(roomName)")
-                return roomNode
-            }
-        }
-
-        print("ERROR: Position not contained in any room.")
-        return nil
-    }
-
-    private func isPositionContained(_ position: SCNVector3, in node: SCNNode) -> Bool {
-        guard let geometry = node.geometry else {
-            return false
-        }
-
-        let hitTestOptions: [String: Any] = [
-            SCNHitTestOption.backFaceCulling.rawValue: false,  // Ignora il culling delle facce posteriori
-            SCNHitTestOption.boundingBoxOnly.rawValue: false, // Usa la geometria effettiva
-            SCNHitTestOption.ignoreHiddenNodes.rawValue: false // Non ignora i nodi nascosti
-        ]
-
-        let rayOrigin = position
-        let rayDirection = SCNVector3(0, 0, 1)
-        let rayEnd = PositionProvider.sum(lhs: rayOrigin, rhs: rayDirection)
-
-
-        // Esegui l'hit-test sul nodo stesso
-        let hitResults = node.hitTestWithSegment(from: rayOrigin, to: rayEnd, options: hitTestOptions)
-
-        return !hitResults.isEmpty
+        // Crea il nodo per il cilindro
+        let raycastNode = SCNNode(geometry: cylinder)
+        
+        // Posiziona il cilindro a metà tra origine e fine
+        raycastNode.position = SCNVector3(
+            (origin.x + end.x) / 2,
+            (origin.y + end.y) / 2,
+            (origin.z + end.z) / 2
+        )
+        
+        // Allinea il cilindro lungo il vettore direzione
+        raycastNode.look(at: end)
+        
+        // Aggiungi il nodo alla scena
+        scene.rootNode.addChildNode(raycastNode)
     }
 
     static private func sum(lhs: SCNVector3, rhs: SCNVector3) -> SCNVector3 {
@@ -188,24 +171,88 @@ public class PositionProvider: PositionSubject, LocationObserver, @preconcurrenc
     }
     
     public func onLocationUpdate(_ newPosition: simd_float4x4, _ newTrackingState: String) {
+        if newTrackingState == "Normal"{
+            print("SET SWITCH IN FALSE")
+            //switchingRoom = false
+        }
         
-        self.position = newPosition
-        self.trackingState = newTrackingState
+        if switchingRoom == false{
+            self.position = newPosition
+            self.trackingState = newTrackingState
+            self.roomMatrixActive = self.activeRoom.name
+                    
+            scnRoomView.updatePosition(self.position, nil, floor: self.activeFloor)
+            scnFloorView.updatePosition(self.position, self.activeFloor.associationMatrix[self.activeRoom.name], floor: self.activeFloor)
+            
+            //var roto = RotoTraslationMatrix(name: "Corridoio", translation: simd_float4x4(0), r_Y: simd_float4x4(0))
+            //scnFloorView.updatePosition(self.position, roto)
+            
+            //Save LastFloorPosition
+
+            let posFloorNode = scnFloorView.scnView.scene?.rootNode.childNodes.first(where: { $0.name == "POS_FLOOR" })
+            self.lastFloorPosition = posFloorNode?.simdWorldTransform ?? simd_float4x4(0)
+            
+            checkSwitchRoom()
+        }
         
-        switchingRoom = false
+        else if switchingRoom == true {
+            self.position = newPosition
+            
+            var positionOffTracking = self.lastFloorPosition
+            //self.angleGradi =  yRotationAngleString(from: newPosition)
+            print("--> Initial Transform:")
+            printSimdFloat4x4(positionOffTracking)
+            
+            // Aggiorniamo la traslazione sommando le colonne 3
+            positionOffTracking.columns.3 = simd_float4(
+                self.position.columns.3.x + self.lastFloorPosition.columns.3.x, // Somma [3,0]
+                self.position.columns.3.y + self.lastFloorPosition.columns.3.y, // Somma [3,1]
+                self.position.columns.3.z + self.lastFloorPosition.columns.3.z, // Somma [3,2]
+                1.0 // Manteniamo il valore omogeneo
+            )
+            
+            
+//            // Estrai la rotazione sull'asse Y da newPosition
+//               let yRotationNew = atan2(newPosition.columns.0.z, newPosition.columns.0.x) // Angolo Y di newPosition
+//
+//               // Estrai la rotazione sull'asse Y da positionOffTracking
+//               let yRotationOffTracking = atan2(positionOffTracking.columns.0.z, positionOffTracking.columns.0.x) // Angolo Y di positionOffTracking
+//
+//               // Somma l'incremento di rotazione sull'asse Y
+//               let combinedYRotation = yRotationOffTracking + (yRotationNew - yRotationOffTracking)
+//
+//               // Crea una matrice di rotazione intorno all'asse Y
+//            let combinedRotationYMatrix = float4x4.rotationAroundY(combinedYRotation)
+//
+//               // Aggiorna solo la parte di rotazione della matrice di positionOffTracking
+//               positionOffTracking.columns.0 = combinedRotationYMatrix.columns.0
+//               positionOffTracking.columns.1 = combinedRotationYMatrix.columns.1
+//               positionOffTracking.columns.2 = combinedRotationYMatrix.columns.2
+
+            
+            print("Updated Transform:")
+            printSimdFloat4x4(positionOffTracking)
+            
+            scnRoomView.updatePosition(self.position, nil, floor: self.activeFloor)
+            scnFloorView.updatePosition(positionOffTracking, nil, floor: self.activeFloor)
+        }
         
-        scnRoomView.updatePosition(self.position, nil, floor: self.activeFloor)
-        scnFloorView.updatePosition(self.position, self.activeFloor.associationMatrix["Corridoio"], floor: self.activeFloor)
-        
-        //var roto = RotoTraslationMatrix(name: "Corridoio", translation: simd_float4x4(0), r_Y: simd_float4x4(0))
-        //scnFloorView.updatePosition(self.position, roto)
-        
-        //Save LastFloorPosition
-        let posFloorNode = scnFloorView.scnView.scene?.rootNode.childNode(withName: "POS_FLOOR", recursively: true)
-        self.lastFloorPosition = posFloorNode?.simdWorldTransform ?? simd_float4x4(0)
-        
-        //checkSwitchRoom()
-        
+
+//        func yRotationAngleString(from transform: simd_float4x4) -> String {
+//            // Estrai i componenti della matrice di rotazione
+//            let r11 = transform.columns.0.x // Elemento [0,0]
+//            let r13 = transform.columns.2.x // Elemento [0,2]
+//            
+//            // Calcola l'angolo rispetto all'asse Y
+//            let yRotationRadians = atan2(r13, r11)
+//            
+//            // Converti l'angolo da radianti a gradi
+//            let yRotationDegrees = yRotationRadians * (180.0 / .pi)
+//            
+//            // Restituisci l'angolo come stringa formattata
+//            return String(format: "%.2f°", yRotationDegrees)
+//        }
+
 //        }
         
 //        if self.trackingState != "Normal" && switchingRoom == false {
@@ -271,6 +318,28 @@ public class PositionProvider: PositionSubject, LocationObserver, @preconcurrenc
 //        }
     }
     
+    @available(iOS 16.0, *)
+    func getNodesMatchingRoomNames(from floor: Floor, in scnFloorView: SCNView) -> [SCNNode] {
+       
+        let roomNames = Set(floor.rooms.map { $0.name })
+        
+        // Ottieni tutti i nodi dalla root della scena
+        guard let rootNode = scnFloorView.scene?.rootNode else {
+            print("La scena non ha un rootNode.")
+            return []
+        }
+        
+        // Trova i nodi che corrispondono ai nomi delle room
+        let matchingNodes = rootNode.childNodes.filter { node in
+            if let nodeName = node.name {
+                return roomNames.contains(nodeName)
+            }
+            return false
+        }
+        
+        return matchingNodes
+    }
+    
     func checkSwitchRoom() {
         
         guard let posFloorNode = scnFloorView.scnView.scene?.rootNode.childNode(withName: "POS_FLOOR", recursively: true) else {
@@ -278,56 +347,193 @@ public class PositionProvider: PositionSubject, LocationObserver, @preconcurrenc
             return
         }
         
-        var lastPositionNormal = posFloorNode.simdWorldTransform
+        var roomsNode = getNodesMatchingRoomNames(from: activeFloor, in: scnFloorView.scnView)
+        
+        for room in roomsNode{
+            print(room.name)
+        }
         
         let nextRoom = findPositionContainer(for: posFloorNode.worldPosition)
-        self.nodeContainedIn = nextRoom?.name ?? activeRoom.name
+        //let nextRoom =  findFloorBelow(point: posFloorNode.worldPosition, floors: roomsNode)
+        self.nodeContainedIn = nextRoom?.name ?? "Error Contained"
         
         if activeFloor.rooms.map { $0.name }.contains(self.nodeContainedIn), self.nodeContainedIn != activeRoom.name {
-            
+            print("SET SWITCH IN TRUE")
+            self.switchingRoom = true
             prevRoom = activeRoom
             self.activeRoom = activeFloor.getRoom(byName: self.nodeContainedIn) ?? prevRoom
-            self.switchingRoom = true
+            
+            
+            self.roomMatrixActive = prevRoom.name
+            
+            var rooms = [String]()
+            for room in activeFloor.rooms {
+                rooms.append(room.name)
+            }
             
             if let planimetry = activeRoom.planimetry {
                 print("Change Room from: \(prevRoom.name) to: \(activeRoom.name)")
 
-                DispatchQueue.main.async {
-                    self.activeRoomPlanimetry = planimetry
-                }
+                self.scnRoomView.loadPlanimetry(scene: self.activeRoom,
+                                                roomsNode: rooms,
+                                                borders: true,
+                                                nameCaller: self.activeRoom.name)
             }
             
             //Upload new ARSCNView
-            //self.arSCNView.startARSCNView(with: self.activeRoom.arWorldMap!, for: false)
+            self.arSCNView.startARSCNView(with: self.activeRoom, for: false)
             
         } else {
             print("Node are in the same room: \(self.nodeContainedIn)")
         }
     }
     
-//    func changeARWorldMap() {
-//        
-//        self.activeRoom = activeFloor.getRoom(byName: self.nodeContainedIn) ?? self.activeRoom
-//        //self.scnRoomView.loadPlanimetry(scene: self.activeRoom.scene, roomsNode: nil, borders: true, nameCaller: activeRoom.name)
-//        
-//    }
-//    
-//    func testChangeARWorldMap() {
-//        
-//        /**
-//         STEP:
-//         1. Traslare la posizione Floor nella nuova Room
-//         2. Inizializzare il punto 0 della Room con la posizione traslata
-//         3. Navigare con VIO di default ARWorldMap
-//         4. Quando torna normal continuare con la localizzazione ARKit.
-//         */
-//        
-//        self.activeRoom = activeFloor.getRoom(byName: self.nodeContainedIn) ?? self.activeRoom
-//        //self.scnRoomView.loadPlanimetrySwitching(scene: self.activeRoom.scene, roomsNode: nil, borders: true, lastFloorPosition: lastFloorPosition, lastRoom: prevRoom, floor: activeFloor)
-//        
-//        //self.scnRoomView.loadPlanimetry(scene: self.activeRoom.scene, roomsNode: nil, borders: true)
-//        //self.arView.startARSCNView(with: self.activeRoom.arWorldMap!)
-//    }
+    ///MARK: Old Method Check
+    func findPositionContainer(for positionVector: SCNVector3) -> SCNNode? {
+        // Ottieni i nomi delle stanze attive
+        let roomNames = Set(activeFloor.rooms.map { $0.name })
+        print("Room names:", roomNames)
+
+        // Itera sui nodi figli del rootNode
+        for roomNode in scnFloorView.scnView.scene!.rootNode.childNodes {
+            // Controlla se il nodo è un nodo "Floor_" seguito dal nome della stanza
+            guard let floorNodeName = roomNode.name,
+                  floorNodeName.starts(with: "Floor_"),
+                  let roomName = floorNodeName.split(separator: "_").last, // Estrai il nome della stanza
+                  roomNames.contains(String(roomName))
+            else {
+                print("Error Continue: \(roomNode.name ?? "Unnamed Node")")
+                continue
+            }
+
+            // Cerca un nodo figlio con il nome della stanza
+            if let matchingChildNode = roomNode.childNode(withName: String(roomName), recursively: true) {
+                // Converti la posizione rispetto al nodo figlio
+                let localPosition = matchingChildNode.convertPosition(positionVector, from: nil)
+
+                // Verifica se la posizione è contenuta
+                if isPositionContained(localPosition, in: matchingChildNode) {
+                    print("Position is contained in room: \(roomName)")
+                    return matchingChildNode
+                }
+            } else {
+                print("No matching child node found for room: \(roomName)")
+            }
+        }
+
+        print("ERROR: Position not contained in any room.")
+        return nil
+    }
+    
+    private func isPositionContained(_ position: SCNVector3, in node: SCNNode) -> Bool {
+        print("Check in \(node.name)")
+        guard let geometry = node.geometry else {
+            return false
+        }
+        
+        let hitTestOptions: [String: Any] = [
+            SCNHitTestOption.backFaceCulling.rawValue: false,  // Ignora il culling delle facce posteriori
+            SCNHitTestOption.boundingBoxOnly.rawValue: false, // Usa la geometria effettiva
+            SCNHitTestOption.ignoreHiddenNodes.rawValue: false // Non ignora i nodi nascosti
+        ]
+        let rayOrigin = position
+        let rayDirection = SCNVector3(0, 0, 1)
+        let rayEnd = PositionProvider.sum(lhs: rayOrigin, rhs: rayDirection)
+
+        let hitResults = node.hitTestWithSegment(from: rayOrigin, to: rayEnd, options: hitTestOptions)
+        return !hitResults.isEmpty
+    }
+
+    ///MARK: Check Room Position with Room Floor Intersecate (Dosn't work for Mascetti) 
+    func findFloorBelow(point: SCNVector3, floors: [SCNNode]) -> SCNNode? {
+        
+        // Configura le opzioni per l'hit-test
+        let hitTestOptions: [String: Any] = [
+            SCNHitTestOption.backFaceCulling.rawValue: false,  // Ignora il culling delle facce posteriori
+            SCNHitTestOption.boundingBoxOnly.rawValue: false, // Usa la geometria effettiva
+            SCNHitTestOption.ignoreHiddenNodes.rawValue: false // Non ignora i nodi nascosti
+        ]
+
+        // Lancia un raycast verso il basso per ogni pavimento
+        for floor in floors {
+            // Posizione del dispositivo nella scena
+            print("Device position in scene: \(point)")
+
+            // Posizione del nodo in cui si sta facendo il test
+            print("Testing floor node position: \(floor.position)")
+
+            // Definizione del segmento di hit test
+            let rayStart = point
+            let rayEnd = SCNVector3(point.x, point.y - 10, point.z)
+            addDebugMarker(at: rayStart, color: .green, scene: self.scnFloorView.scnView.scene!)
+            addDebugMarker(at: rayEnd, color: .red, scene: self.scnFloorView.scnView.scene!)
+            // Stampa la posizione del raggio di partenza e di fine
+            print("Ray start position: \(rayStart)")
+            print("Ray end position: \(rayEnd)")
+
+            // Esegui l'hit test
+            let hitResults = floor.hitTestWithSegment(from: rayStart, to: rayEnd, options: hitTestOptions)
+            
+            // Disegna il raggio per la visualizzazione nella scena
+            drawRay(from: rayStart, to: rayEnd, in: self.scnFloorView.scnView.scene!)
+
+            if let closestHit = hitResults.first {
+                // Distanza tra il punto del dispositivo e il punto di intersezione
+                let distance = closestHit.worldCoordinates.distance(to: point)
+
+                print("Hit detected on node: \(closestHit.node.name ?? "Unnamed Node")")
+                print("Hit world coordinates: \(closestHit.worldCoordinates)")
+                print("Distance to hit: \(distance)")
+
+                return floor
+            } else {
+                print("No hit detected for this floor.")
+            }
+        }
+
+
+        print("No floors were intersected.")
+        return nil
+    }
+    
+    func drawRay(from start: SCNVector3, to end: SCNVector3, in scene: SCNScene, color: UIColor = .blue) {
+        // Calcola la direzione (vettore) tra start e end
+        let vector = SCNVector3(end.x - start.x, end.y - start.y, end.z - start.z)
+        
+        // Calcola la lunghezza del vettore
+        let length = sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z)
+        
+        // Crea un cilindro con la lunghezza calcolata
+        let cylinder = SCNCylinder(radius: 0.01, height: CGFloat(length))
+        cylinder.firstMaterial?.diffuse.contents = color
+
+        // Crea un nodo per il cilindro
+        let rayNode = SCNNode(geometry: cylinder)
+        
+        // Posiziona il cilindro al punto medio tra start e end
+        rayNode.position = SCNVector3(
+            (start.x + end.x) / 2,
+            (start.y + end.y) / 2,
+            (start.z + end.z) / 2
+        )
+        
+        // Calcola la rotazione del cilindro per allinearlo al vettore
+        let direction = vector.normalized()
+        let up = SCNVector3(0, 1, 0) // L'asse Y locale del cilindro
+        let rotation = SCNVector4.rotation(from: up, to: direction)
+        rayNode.rotation = rotation
+
+        // Aggiungi il cilindro alla scena
+        scene.rootNode.addChildNode(rayNode)
+    }
+    
+    func addDebugMarker(at position: SCNVector3, color: UIColor, scene: SCNScene) {
+        let sphere = SCNSphere(radius: 0.05)
+        sphere.firstMaterial?.diffuse.contents = color
+        let markerNode = SCNNode(geometry: sphere)
+        markerNode.position = position
+        scene.rootNode.addChildNode(markerNode)
+    }
     
     public func onRoomChanged(_ newRoom: Room) {
         // TODO: Manage new Room
@@ -446,6 +652,76 @@ extension matrix_float4x4 {
             SIMD4<Float>(Float(rotationMatrix.m21), Float(rotationMatrix.m22), Float(rotationMatrix.m23), 0),
             SIMD4<Float>(Float(rotationMatrix.m31), Float(rotationMatrix.m32), Float(rotationMatrix.m33), 0),
             SIMD4<Float>(0, 0, 0, 1)
+        ))
+    }
+}
+
+
+extension SCNVector3 {
+    func distance(to vector: SCNVector3) -> Float {
+        return sqrt(
+            pow(vector.x - self.x, 2) +
+            pow(vector.y - self.y, 2) +
+            pow(vector.z - self.z, 2)
+        )
+    }
+}
+
+extension SCNVector3 {
+    /// Calcola il modulo (lunghezza) del vettore
+    func length() -> Float {
+        return sqrt(x * x + y * y + z * z)
+    }
+    
+    /// Restituisce il vettore normalizzato
+    func normalized() -> SCNVector3 {
+        let length = self.length()
+        return length == 0 ? SCNVector3(0, 0, 0) : SCNVector3(x / length, y / length, z / length)
+    }
+}
+
+extension SCNVector4 {
+    /// Calcola la rotazione necessaria per passare da `from` a `to`
+    static func rotation(from fromVector: SCNVector3, to toVector: SCNVector3) -> SCNVector4 {
+        let cross = fromVector.cross(to: toVector)
+        let dot = fromVector.dot(to: toVector)
+        let angle = acos(dot / (fromVector.length() * toVector.length()))
+        
+        // Se l'angolo è zero, nessuna rotazione è necessaria
+        if angle.isNaN || angle == 0 {
+            return SCNVector4(0, 1, 0, 0) // Nessuna rotazione
+        }
+        
+        return SCNVector4(cross.x, cross.y, cross.z, angle)
+    }
+}
+
+extension SCNVector3 {
+    /// Calcola il prodotto vettoriale tra due vettori
+    func cross(to vector: SCNVector3) -> SCNVector3 {
+        return SCNVector3(
+            y * vector.z - z * vector.y,
+            z * vector.x - x * vector.z,
+            x * vector.y - y * vector.x
+        )
+    }
+    
+    /// Calcola il prodotto scalare tra due vettori
+    func dot(to vector: SCNVector3) -> Float {
+        return x * vector.x + y * vector.y + z * vector.z
+    }
+}
+
+extension float4x4 {
+    static func rotationAroundY(_ angle: Float) -> float4x4 {
+        let c = cos(angle)
+        let s = sin(angle)
+
+        return float4x4(columns: (
+            simd_float4(c,  0, s, 0),
+            simd_float4(0,  1, 0, 0),
+            simd_float4(-s, 0, c, 0),
+            simd_float4(0,  0, 0, 1)
         ))
     }
 }

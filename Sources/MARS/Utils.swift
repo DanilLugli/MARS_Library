@@ -96,44 +96,48 @@ public func trackingStateToString(_ state: ARCamera.TrackingState) -> String {
     return houseNode
 }
 
+//@MainActor
+//func applyRotoTraslation(to node: SCNNode, with rotoTraslation: RotoTraslationMatrix) {
+//    print("APPLY TO NODE: \(node.name)")
+//    print("NEW POSITION (simdWorldTransform): ")
+//    printSimdFloat4x4(node.simdWorldTransform)
+//    
+//    let translationVector = simd_float3(
+//        rotoTraslation.translation.columns.3.x, //Laterale
+//        rotoTraslation.translation.columns.3.y, //Verticale
+//        rotoTraslation.translation.columns.3.z  //Profondità
+//    )
+//    
+//    node.simdWorldPosition = translationVector + node.simdWorldPosition
+//    
+//    print("APPLY RotoTraslation")
+//    print("[Roto]:")
+//    printSimdFloat4x4(rotoTraslation.r_Y)
+//    print("[Traslation]:")
+//    printSimdFloat4x4(rotoTraslation.translation)
+//    
+//    let rotationMatrix = rotoTraslation.r_Y
+//    
+//    let rotationQuaternion = simd_quatf(rotationMatrix)
+//
+//    node.simdWorldOrientation = rotationQuaternion * node.simdWorldOrientation
+//    
+//    print("\nPOST (simdWorldTransform): ")
+//    printSimdFloat4x4(node.simdWorldTransform)
+//    print("\n\n")
+//}
+
 @MainActor
 func applyRotoTraslation(to node: SCNNode, with rotoTraslation: RotoTraslationMatrix) {
-    print("APPLY TO NODE: \(node.name)")
-    print("NEW POSITION (simdWorldTransform): ")
+    print("APPLY TO NODE: \(node.name ?? "Unnamed Node")")
+    print("Initial Transform:")
     printSimdFloat4x4(node.simdWorldTransform)
-    
-    let translationVector = simd_float3(
-        rotoTraslation.translation.columns.3.x, //Laterale
-        rotoTraslation.translation.columns.3.y, //Verticale
-        rotoTraslation.translation.columns.3.z  //Profondità
-    )
-    
-    node.simdWorldPosition = translationVector + node.simdWorldPosition
-    
-    print("APPLY RotoTraslation")
-    print("[Roto]:")
-    printSimdFloat4x4(rotoTraslation.r_Y)
-    print("[Traslation]:")
-    printSimdFloat4x4(rotoTraslation.translation)
-    
 
-    let rotationMatrix = rotoTraslation.r_Y
-    
-    let rotationQuaternion = simd_quatf(rotationMatrix)
+    let combinedMatrix = rotoTraslation.translation * rotoTraslation.r_Y
+    node.simdWorldTransform = combinedMatrix * node.simdWorldTransform
 
-    node.simdWorldOrientation = rotationQuaternion * node.simdWorldOrientation
-    
-    //node.simdWorldOrientation = node.simdWorldOrientation * rotationQuaternion
-    
-    //node.simdWorldPosition.z  = 0
-    print("PARENT OF: \(node.name)")
-    print(node.parent)
-    print(node.simdOrientation)
-    
-    
-    print("\nPOST (simdWorldTransform): ")
+    print("Updated Transform:")
     printSimdFloat4x4(node.simdWorldTransform)
-    print("\n\n")
 }
 
 //@MainActor
@@ -184,24 +188,24 @@ func printMatrix4x4(_ matrix: simd_float4x4, label: String) {
 
 @available(iOS 16.0, *)
 @MainActor
-func addRoomLocationNode(room: Room) {
+func addLocationNode(scnView: SCNView) {
     
-    if room.scene == nil {
-        room.scene = SCNScene()
+    if scnView.scene == nil {
+        scnView.scene = SCNScene()
     }
     
     var userLocation = generatePositionNode(UIColor(red: 0, green: 255, blue: 0, alpha: 1.0), 0.2)
     userLocation.simdWorldPosition = simd_float3(0.0, 0.0, 0.0)
     userLocation.name = "POS_ROOM"
-    room.scene.rootNode.addChildNode(userLocation)
+    scnView.scene!.rootNode.addChildNode(userLocation)
 }
 
 @available(iOS 16.0, *)
 @MainActor
-func addFloorLocationNode(floor: Floor) {
+func addFloorLocationNode(scnView: SCNView) {
     
-    if floor.scene == nil {
-        floor.scene = SCNScene()
+    if scnView.scene == nil {
+        scnView.scene = SCNScene()
     }
     
     let sphere = SCNSphere(radius: 1.0)
@@ -209,66 +213,104 @@ func addFloorLocationNode(floor: Floor) {
     let userLocation = generatePositionNode(UIColor(red: 0, green: 0, blue: 255, alpha: 1.0), 0.2)
     userLocation.simdWorldPosition = simd_float3(0.0, 0.0, 0.0)
     userLocation.name = "POS_FLOOR"
-    floor.scene.rootNode.addChildNode(userLocation)
+    scnView.scene?.rootNode.addChildNode(userLocation)
 }
 
 @available(iOS 16.0, *)
 @MainActor
-func addRoomNodesToScene(floor: Floor) {
+func addRoomNodesToScene(floor: Floor, scene: SCNScene) {
+    
     do {
         for room in floor.rooms {
-            let roomScene = room.scene
-            if let roomNode = roomScene.rootNode.childNode(withName: "Floor0", recursively: true) {
-                
-                let originalScale = roomNode.scale
-                
-                roomNode.name = room.name
-                roomNode.simdWorldPosition = simd_float3(0.0, 0.0, 0.0)
-                printSimdFloat4x4(roomNode.simdWorldTransform)
-                
-                if let rotoTraslationMatrix = floor.associationMatrix[roomNode.name!] {
-                
-                    applyRotoTraslation(to: roomNode, with: rotoTraslationMatrix)
-                  
-                } else {
-                    print("No RotoTraslationMatrix found for room: \(roomNode.name)")
-                }
-                
-                let material = SCNMaterial()
-                roomNode.geometry?.materials = [material]
-                
-                
-                let size = getNodeSize(node: roomNode)
-                print("Dimensioni del nodo prima della scala - Larghezza: \(size.x), Altezza: \(size.y), Lunghezza: \(size.z)")
+            // Carica il percorso del file della stanza
+            let roomMap = room.roomURL.appendingPathComponent("MapUsdz").appendingPathComponent("\(room.name).usdz")
+            
+            // Carica la scena della stanza
+            let roomScene = try SCNScene(url: URL(fileURLWithPath: roomMap.path))
+            
+            // Crea un nodo per la stanza
+            let roomNode = createSceneNode(from: roomScene, roomName: room.name)
+            roomNode.name = "Floor_\(room.name)"
+            roomNode.simdWorldPosition = simd_float3(0, 0.2, 0)
+            
 
-                let desiredHeight: Float = 4.0
-                let currentHeight = size.y
-
-                if currentHeight != 0 {
-                    let scaleFactor = desiredHeight / currentHeight
-
-                    roomNode.scale = SCNVector3(
-                        roomNode.scale.x,
-                        roomNode.scale.y,
-                        roomNode.scale.z
-                    )
-
-                    let newSize = getNodeSize(node: roomNode)
-                    print("Dimensioni del nodo dopo la scala - Larghezza: \(newSize.x), Altezza: \(newSize.y), Lunghezza: \(newSize.z)")
-                } else {
-                    print("Altezza corrente zero, impossibile scalare il nodo.")
-                }
-
-                floor.scene.rootNode.addChildNode(roomNode)
-                
-                print("\n\nAdded \(roomNode.name ?? "Unnamed Node") to \(floor.name)")
+            if let rotoTraslationMatrix = floor.associationMatrix[room.name] {
+                applyRotoTraslation(to: roomNode, with: rotoTraslationMatrix)
             } else {
-                print("Node 'Floor0' not found in scene: \(roomScene)")
+                print("No RotoTraslationMatrix found for room: \(room.name)")
             }
+            
+            // Aggiungi il nodo alla scena
+            scene.rootNode.addChildNode(roomNode)
         }
     } catch {
         print("Error loading room scenes: \(error)")
     }
+}
+
+@MainActor
+private func createSceneNode(from scene: SCNScene, roomName: String) -> SCNNode {
+    let containerNode = SCNNode()
+    containerNode.name = "SceneContainer"
+    
+    // Cerca il nodo 'Floor0'
+    if let floorNode = scene.rootNode.childNode(withName: "Floor0", recursively: true) {
+        floorNode.name = roomName
+        
+        // Applica i materiali in base al nome della stanza
+        let material = SCNMaterial()
+        switch roomName {
+        case "Mascetti":
+            material.diffuse.contents = UIColor.red.withAlphaComponent(0.2)
+        case "Corridoio":
+            material.diffuse.contents = UIColor.green.withAlphaComponent(0.2)
+        case "Bettini":
+            material.diffuse.contents = UIColor.blue.withAlphaComponent(0.2)
+        default:
+            material.diffuse.contents = UIColor.white.withAlphaComponent(0.2)
+        }
+        floorNode.geometry?.materials = [material]
+        
+        // Calcola e applica la scala per impostare l'altezza desiderata
+        let size = getNodeSize(node: floorNode)
+        let desiredHeight: Float = 4.0
+        let currentHeight = size.y
+        
+        if currentHeight != 0 {
+            let scaleFactor = desiredHeight / currentHeight
+            floorNode.scale = SCNVector3(floorNode.scale.x, floorNode.scale.y, floorNode.scale.z * (-scaleFactor))
+            
+            let newSize = getNodeSize(node: floorNode)
+            print("Node resized - Width: \(newSize.x), Height: \(newSize.y), Length: \(newSize.z)")
+        }
+        
+        containerNode.addChildNode(floorNode)
+    } else {
+        print("Node 'Floor0' not found in the provided scene.")
+    }
+    
+    // Aggiungi una sfera arancione come marker centrale
+    let sphereNode = SCNNode()
+    sphereNode.name = "SceneCenterMarker"
+    sphereNode.position = SCNVector3(0, 0, 0)
+    
+    let sphereGeometry = SCNSphere(radius: 0.1)
+    let sphereMaterial = SCNMaterial()
+    sphereMaterial.emission.contents = UIColor.orange
+    sphereMaterial.diffuse.contents = UIColor.orange
+    sphereGeometry.materials = [sphereMaterial]
+    sphereNode.geometry = sphereGeometry
+    containerNode.addChildNode(sphereNode)
+    
+    // Imposta il pivot sul puntino arancione
+    if let markerNode = containerNode.childNode(withName: "SceneCenterMarker", recursively: true) {
+        let localMarkerPosition = markerNode.position
+        containerNode.pivot = SCNMatrix4MakeTranslation(localMarkerPosition.x, localMarkerPosition.y, localMarkerPosition.z)
+    } else {
+        print("SceneCenterMarker not found, pivot not modified.")
+    }
+    
+    return containerNode
 }
 
 @MainActor
