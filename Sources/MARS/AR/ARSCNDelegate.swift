@@ -83,7 +83,7 @@ class ARSCNDelegate: NSObject, LocationSubject, ARSCNViewDelegate {
             let trackingState = camera.trackingState
 
             var newPosition = camera.transform
-            print("STATE: \(trackingState)\n\n")
+
             self.notifyLocationUpdate(newLocation: newPosition, newTrackingState: trackingStateToString(trackingState))
         }
     }

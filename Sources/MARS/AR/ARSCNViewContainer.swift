@@ -54,20 +54,19 @@ struct ARSCNViewContainer: UIViewRepresentable {
     mutating func startARSCNView(with room: Room, for start: Bool) {
         switch start {
         case true:
+            
+            print("NEW AR WORLD MAP\n")
             configuration.maximumNumberOfTrackedImages = 1
+            arSCNView.debugOptions = [.showWorldOrigin, .showFeaturePoints]
             arSCNView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
             
-            // Reimposta le opzioni di debug dopo l'avvio
-            arSCNView.debugOptions = [.showWorldOrigin, .showFeaturePoints]
-
         case false:
-            configuration.initialWorldMap = room.arWorldMap
-            arSCNView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
-            
-
-            arSCNView.debugOptions = [.showWorldOrigin, .showFeaturePoints]
             
             self.roomActive = room.name
+            configuration.initialWorldMap = room.arWorldMap
+            arSCNView.debugOptions = [.showWorldOrigin, .showFeaturePoints]
+            arSCNView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
+
         }
     }
 }

@@ -30,11 +30,11 @@ public struct MapView: View {
                         
                         CardView(
                             buildingMap: locationProvider.building.name,
-                            floorMap: locationProvider.activeFloor.name,
+                            floorMap: locationProvider.angleGradi,
                             
-                            roomMap: locationProvider.arSCNView.roomActive,
+                            roomMap: String(locationProvider.lastFloorAngle),
                             matrixMap: locationProvider.roomMatrixActive,
-                            actualPosition: locationProvider.position,
+                            actualPosition: locationProvider.lastFloorPosition,
                             trackingState: locationProvider.trackingState,
                             nodeContainedIn: locationProvider.nodeContainedIn,
                             switchingRoom: locationProvider.switchingRoom
@@ -45,6 +45,19 @@ public struct MapView: View {
                         Spacer()
                         
                         VStack {
+                            
+                            Button(action: {
+                                locationProvider.printMatrix()
+                            }) {
+                                Text("Save Matrix")
+                                    .padding()
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color.blue)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(18)
+                            }
+
+                            
                             HStack {
                                 VStack {
                                     HStack(spacing: 0) {

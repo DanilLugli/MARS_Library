@@ -453,34 +453,27 @@ public struct SCNViewContainer: UIViewRepresentable {
     @MainActor func updatePosition(_ newPosition: simd_float4x4, _ matrix: RotoTraslationMatrix?, floor: Floor) {
         
         if matrix == nil {
-//            if let roomNodes = scnView.scene?.rootNode.childNodes.filter({ $0.name == "POS_ROOM" }), !roomNodes.isEmpty {
-//                roomNodes.forEach { $0.removeFromParentNode() }
-//            } else {
-//                print("Nessun nodo trovato con nome 'POS' per la rimozione.")
-//            }
-//            
-//            var roomPositionNode = generatePositionNode(UIColor(red: 0, green: 0, blue: 255, alpha: 1.0), 0.2)
+
             self.scnView.scene?.rootNode.childNodes.first(where: { $0.name == "POS_ROOM" })?.simdWorldTransform = newPosition
             self.scnView.scene?.rootNode.childNodes.first(where: { $0.name == "POS_FLOOR" })?.simdWorldTransform = newPosition
-
-            //roomPositionNode.simdWorldTransform = newPosition
-            //roomPositionNode.simdLocalRotate(by: simd_quatf(angle: GLKMathDegreesToRadians(90.0), axis: [0,0,1]))
-            
-//            roomPositionNode.name = "POS_ROOM"
-//            scnView.scene?.rootNode.addChildNode(roomPositionNode)
             
         }
         
         if let r = matrix {
             
-            updateFloorPositionNode(in: self.scnView,
-                                    newPosition: newPosition,
-                                    withColor: UIColor.green,
-                                    size: 0.2,
-                                    rotationAngle: 90.0,
-                                    rotationAxis: [0, 0, 1],
-                                    rotoTranslationMatrix: matrix!, floor: floor)
+            updateFloorPositionNode(in: self.scnView, newPosition: newPosition, rotoTranslationMatrix: matrix!, floor: floor)
+            
         }
+    }
+    
+    @available(iOS 16.0, *)
+    @MainActor
+    func updateFloorPositionNode(in scnView: SCNView, newPosition: simd_float4x4, rotoTranslationMatrix r: RotoTraslationMatrix, floor: Floor) {
+        
+        var nodePosition = scnView.scene?.rootNode.childNodes.first(where: { $0.name == "POS_FLOOR" })
+        nodePosition?.simdWorldTransform = newPosition
+        applyRotoTraslation(to: nodePosition!, with: r)
+        
     }
     
     public func makeUIView(context: Context) -> SCNView {

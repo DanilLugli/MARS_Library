@@ -10,59 +10,9 @@ import RoomPlan
 import ARKit
 import simd
 
-public func trackingStateToString(_ state: ARCamera.TrackingState) -> String {
 
-    switch state {
-    case .normal:
-        return "Normal"
-    case .notAvailable:
-        return "Not available"
-    case .limited(.excessiveMotion):
-        return "ExcessiveMotion"
-    case .limited(.initializing):
-        return "Initializing..."
-    case .limited(.insufficientFeatures):
-        return "Insufficient Features"
-    case .limited(.relocalizing):
-        return "Re-Localizing..."
-    default:
-        return ""
-    }
-}
-
-@available(iOS 16.0, *)
-@MainActor func updateFloorPositionNode(in scnView: SCNView,
-                                        newPosition: simd_float4x4,
-                                        withColor color: UIColor = UIColor(red: 0, green: 255, blue: 0, alpha: 1.0),
-                                        size: Float = 0.2,
-                                        rotationAngle: Float = 90.0,
-                                        rotationAxis: SIMD3<Float> = [0, 0, 1],
-                                        rotoTranslationMatrix r: RotoTraslationMatrix,
-                                        floor: Floor
-) {
-    
-//    if let floorNodes = scnView.scene?.rootNode.childNodes.filter({ $0.name == "POS_FLOOR" }), !floorNodes.isEmpty {
-//        floorNodes.forEach { $0.removeFromParentNode() }
-//    } else {
-//        print("Nessun nodo trovato con nome 'POS_FLOOR' per la rimozione.")
-//    }
-//    
-//    var floorPositionNode = generatePositionNode(color, CGFloat(size))
-//    
-//    floorPositionNode.simdWorldTransform = newPosition
-//    floorPositionNode.name = "POS_FLOOR"
-//    
-//    floor.scene.rootNode.addChildNode(floorPositionNode)
-//    print("PARENT OF: \(floorPositionNode.name)")
-//    print(floorPositionNode.parent)
-    
-    var nodePosition = scnView.scene?.rootNode.childNodes.first(where: { $0.name == "POS_FLOOR" })
-    nodePosition?.simdWorldTransform = newPosition
-    applyRotoTraslation(to: nodePosition!, with: r)
-
-}
-
-@MainActor func generatePositionNode(_ color: UIColor, _ radius: CGFloat) -> SCNNode {
+@MainActor
+func generatePositionNode(_ color: UIColor, _ radius: CGFloat) -> SCNNode {
     
     let houseNode = SCNNode() //3 Sphere
     
@@ -96,37 +46,6 @@ public func trackingStateToString(_ state: ARCamera.TrackingState) -> String {
     return houseNode
 }
 
-//@MainActor
-//func applyRotoTraslation(to node: SCNNode, with rotoTraslation: RotoTraslationMatrix) {
-//    print("APPLY TO NODE: \(node.name)")
-//    print("NEW POSITION (simdWorldTransform): ")
-//    printSimdFloat4x4(node.simdWorldTransform)
-//    
-//    let translationVector = simd_float3(
-//        rotoTraslation.translation.columns.3.x, //Laterale
-//        rotoTraslation.translation.columns.3.y, //Verticale
-//        rotoTraslation.translation.columns.3.z  //Profondità
-//    )
-//    
-//    node.simdWorldPosition = translationVector + node.simdWorldPosition
-//    
-//    print("APPLY RotoTraslation")
-//    print("[Roto]:")
-//    printSimdFloat4x4(rotoTraslation.r_Y)
-//    print("[Traslation]:")
-//    printSimdFloat4x4(rotoTraslation.translation)
-//    
-//    let rotationMatrix = rotoTraslation.r_Y
-//    
-//    let rotationQuaternion = simd_quatf(rotationMatrix)
-//
-//    node.simdWorldOrientation = rotationQuaternion * node.simdWorldOrientation
-//    
-//    print("\nPOST (simdWorldTransform): ")
-//    printSimdFloat4x4(node.simdWorldTransform)
-//    print("\n\n")
-//}
-
 @MainActor
 func applyRotoTraslation(to node: SCNNode, with rotoTraslation: RotoTraslationMatrix) {
     print("APPLY TO NODE: \(node.name ?? "Unnamed Node")")
@@ -138,52 +57,6 @@ func applyRotoTraslation(to node: SCNNode, with rotoTraslation: RotoTraslationMa
 
     print("Updated Transform:")
     printSimdFloat4x4(node.simdWorldTransform)
-}
-
-//@MainActor
-//func applyRotoTraslation(to node: SCNNode, with rotoTraslation: RotoTraslationMatrix) {
-//    
-//    let translationVector = simd_float3(
-//        rotoTraslation.translation.columns.3.x,
-//        rotoTraslation.translation.columns.3.y,
-//        rotoTraslation.translation.columns.3.z
-//    )
-//    node.simdPosition += translationVector
-//
-//    let rotationMatrix = rotoTraslation.r_Y
-//
-//    let rotationQuaternion = simd_quatf(rotationMatrix)
-//
-//    node.simdOrientation = rotationQuaternion * node.simdOrientation
-//}
-
-
-@MainActor
-func applyInverseRotoTraslation(to node: SCNNode, with rotoTraslation: RotoTraslationMatrix) -> simd_float4x4 {
-    // Inversione della traslazione
-    let inverseTranslationVector = simd_float3(
-        rotoTraslation.translation.columns.3.x,
-        rotoTraslation.translation.columns.3.y,
-        rotoTraslation.translation.columns.3.z
-    )
-    node.simdPosition -= inverseTranslationVector
-
-    // Inversione della rotazione
-    let rotationMatrix = rotoTraslation.r_Y
-    let rotationQuaternion = simd_quatf(rotationMatrix)
-    let inverseRotationQuaternion = simd_quatf(angle: -rotationQuaternion.angle, axis: rotationQuaternion.axis)
-    
-    node.simdOrientation = inverseRotationQuaternion * node.simdOrientation
-    
-    return node.simdWorldTransform
-}
-
-func printMatrix4x4(_ matrix: simd_float4x4, label: String) {
-    print("\(label):")
-    print("[\(matrix.columns.0.x), \(matrix.columns.1.x), \(matrix.columns.2.x), \(matrix.columns.3.x)]")
-    print("[\(matrix.columns.0.y), \(matrix.columns.1.y), \(matrix.columns.2.y), \(matrix.columns.3.y)]")
-    print("[\(matrix.columns.0.z), \(matrix.columns.1.z), \(matrix.columns.2.z), \(matrix.columns.3.z)]")
-    print("[\(matrix.columns.0.w), \(matrix.columns.1.w), \(matrix.columns.2.w), \(matrix.columns.3.w)]\n")
 }
 
 @available(iOS 16.0, *)
@@ -233,14 +106,12 @@ func addRoomNodesToScene(floor: Floor, scene: SCNScene) {
             roomNode.name = "Floor_\(room.name)"
             roomNode.simdWorldPosition = simd_float3(0, 0.2, 0)
             
-
             if let rotoTraslationMatrix = floor.associationMatrix[room.name] {
                 applyRotoTraslation(to: roomNode, with: rotoTraslationMatrix)
             } else {
                 print("No RotoTraslationMatrix found for room: \(room.name)")
             }
             
-            // Aggiungi il nodo alla scena
             scene.rootNode.addChildNode(roomNode)
         }
     } catch {
@@ -334,6 +205,34 @@ func printSimdFloat4x4(_ matrix: simd_float4x4) {
             String(format: "%.4f", matrix[row, column]) // Corretto ordine
         }.joined(separator: "\t")
         print("[ \(columnValues) ]")
+    }
+}
+
+func printMatrix4x4(_ matrix: simd_float4x4, label: String) {
+    print("\(label):")
+    print("[\(matrix.columns.0.x), \(matrix.columns.1.x), \(matrix.columns.2.x), \(matrix.columns.3.x)]")
+    print("[\(matrix.columns.0.y), \(matrix.columns.1.y), \(matrix.columns.2.y), \(matrix.columns.3.y)]")
+    print("[\(matrix.columns.0.z), \(matrix.columns.1.z), \(matrix.columns.2.z), \(matrix.columns.3.z)]")
+    print("[\(matrix.columns.0.w), \(matrix.columns.1.w), \(matrix.columns.2.w), \(matrix.columns.3.w)]\n")
+}
+
+public func trackingStateToString(_ state: ARCamera.TrackingState) -> String {
+
+    switch state {
+    case .normal:
+        return "Normal"
+    case .notAvailable:
+        return "Not available"
+    case .limited(.excessiveMotion):
+        return "ExcessiveMotion"
+    case .limited(.initializing):
+        return "Initializing..."
+    case .limited(.insufficientFeatures):
+        return "Insufficient Features"
+    case .limited(.relocalizing):
+        return "Re-Localizing..."
+    default:
+        return ""
     }
 }
 
