@@ -48,14 +48,10 @@ func generatePositionNode(_ color: UIColor, _ radius: CGFloat) -> SCNNode {
 
 @MainActor
 func applyRotoTraslation(to node: SCNNode, with rotoTraslation: RotoTraslationMatrix) {
-    print("APPLY TO NODE: \(node.name ?? "Unnamed Node")")
-    print("Initial Transform:")
-    printSimdFloat4x4(node.simdWorldTransform)
 
     let combinedMatrix = rotoTraslation.translation * rotoTraslation.r_Y
     node.simdWorldTransform = combinedMatrix * node.simdWorldTransform
 
-    print("Updated Transform:")
     printSimdFloat4x4(node.simdWorldTransform)
 }
 
@@ -95,13 +91,10 @@ func addRoomNodesToScene(floor: Floor, scene: SCNScene) {
     
     do {
         for room in floor.rooms {
-            // Carica il percorso del file della stanza
+
             let roomMap = room.roomURL.appendingPathComponent("MapUsdz").appendingPathComponent("\(room.name).usdz")
-            
-            // Carica la scena della stanza
             let roomScene = try SCNScene(url: URL(fileURLWithPath: roomMap.path))
             
-            // Crea un nodo per la stanza
             let roomNode = createSceneNode(from: roomScene, roomName: room.name)
             roomNode.name = "Floor_\(room.name)"
             roomNode.simdWorldPosition = simd_float3(0, 0.2, 0)

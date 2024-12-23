@@ -92,7 +92,7 @@ public class PositionProvider: PositionSubject, LocationObserver, @preconcurrenc
                 
         let roomNodes = self.activeFloor.rooms.map { $0.name }
         
-        self.activeRoom = self.activeFloor.rooms[0]
+        self.activeRoom = self.activeFloor.rooms[1]
         self.roomMatrixActive = self.activeRoom.name
         self.activeRoomPlanimetry = self.activeRoom.planimetry
         self.prevRoom = self.activeRoom
@@ -124,7 +124,7 @@ public class PositionProvider: PositionSubject, LocationObserver, @preconcurrenc
                 self.offMatrix = updateMatrixWithYawTest(matrix: self.lastFloorPosition,  yawRadians: self.lastFloorAngle)
 
             } else {
-                self.lastFloorPosition = simd_float4x4(0)
+                self.lastFloorPosition = simd_float4x4(1)
             }
 
             checkSwitchRoom()
@@ -137,19 +137,19 @@ public class PositionProvider: PositionSubject, LocationObserver, @preconcurrenc
             positionOffTracking = calculatePositionOffTracking(lastFloorPosition: lastFloorPosition, newPosition: newPosition)
 
             scnRoomView.updatePosition(newPosition, nil, floor: activeFloor)
-            scnFloorView.updatePosition(positionOffTracking, nil, floor: self.activeFloor)
+            scnFloorView.updatePosition(positionOffTracking, nil, floor: activeFloor)
             
+            self.switchingRoom = (newTrackingState != "Normal")
             
         default:
             break
         }
+        
     }
 
     func calculatePositionOffTracking( lastFloorPosition: simd_float4x4, newPosition: simd_float4x4) -> simd_float4x4 {
         
         positionOffTracking = offMatrix * newPosition
-        printMatrix2()
-
         return positionOffTracking
     }
 
@@ -169,44 +169,7 @@ public class PositionProvider: PositionSubject, LocationObserver, @preconcurrenc
 
         combinedMatrix.columns.3 = matrix.columns.3
 
-        printSimdFloat4x4(combinedMatrix)
-
         return combinedMatrix
-    }
-    
-    func addRotationAroundY(
-        from firstMatrix: simd_float4x4,
-        to secondMatrix: simd_float4x4
-    ) -> simd_float4x4 {
-        // Funzione per estrarre l'angolo di rotazione attorno all'asse Y
-        func getYaw(from matrix: simd_float4x4) -> Float {
-            return atan2(matrix[0][2], matrix[0][0]) // Estrae Yaw dalla matrice
-        }
-
-        // Estrai gli angoli Yaw dalle due matrici
-        let yaw1 = getYaw(from: firstMatrix)
-        let yaw2 = getYaw(from: secondMatrix)
-
-        // Somma i due angoli
-        let combinedYaw = yaw1 + yaw2
-
-        // Crea una nuova matrice di rotazione per il nuovo angolo Yaw
-        let combinedRotation = simd_float4x4(
-            simd_quatf(angle: combinedYaw, axis: simd_float3(0, 1, 0))
-        )
-
-        // Combina la traslazione dalla seconda matrice con la nuova rotazione
-        let combinedTranslation = simd_float3(
-            secondMatrix.columns.3.x,
-            secondMatrix.columns.3.y,
-            secondMatrix.columns.3.z
-        )
-
-        // Costruisce una nuova matrice 4x4 con la rotazione combinata e la traslazione originale
-        var resultMatrix = combinedRotation
-        resultMatrix.columns.3 = simd_make_float4(combinedTranslation, 1)
-
-        return resultMatrix
     }
 
     func createRotoTranslationMatrix(translation: simd_float3, angleY: Float) -> simd_float4x4 {
@@ -322,32 +285,27 @@ public class PositionProvider: PositionSubject, LocationObserver, @preconcurrenc
             print(room.name)
         }
         
-        let nextRoom = findPositionContainer(for: posFloorNode.worldPosition)
-        //let nextRoom =  findFloorBelow(point: posFloorNode.worldPosition, floors: roomsNode)
-        self.nodeContainedIn = nextRoom?.name ?? "Error Contained"
-        
-        if activeFloor.rooms.map { $0.name }.contains(self.nodeContainedIn), self.nodeContainedIn != activeRoom.name {
-            printMatrix()
+        let nextRoomName = findPositionContainer(for: posFloorNode.worldPosition)?.name ?? "Error Contained"
+        self.nodeContainedIn = nextRoomName
+
+        if nextRoomName != activeRoom.name, activeFloor.rooms.contains(where: { $0.name == nextRoomName }) {
+            
             self.switchingRoom = true
+
             prevRoom = activeRoom
             self.roomMatrixActive = prevRoom.name
-            self.activeRoom = activeFloor.getRoom(byName: self.nodeContainedIn) ?? prevRoom
+            self.activeRoom = activeFloor.getRoom(byName: nextRoomName) ?? prevRoom
             
-            var rooms = [String]()
-            for room in activeFloor.rooms {
-                rooms.append(room.name)
-            }
-            
+            self.arSCNView.startARSCNView(with: activeRoom, for: false)
+
+            let roomNames = activeFloor.rooms.map { $0.name }
+
             if let planimetry = activeRoom.planimetry {
-                
-                self.scnRoomView.loadPlanimetry(scene: self.activeRoom,
-                                                roomsNode: rooms,
+                self.scnRoomView.loadPlanimetry(scene: activeRoom,
+                                                roomsNode: roomNames,
                                                 borders: true,
-                                                nameCaller: self.activeRoom.name)
-                
+                                                nameCaller: activeRoom.name)
             }
-            
-            self.arSCNView.startARSCNView(with: self.activeRoom, for: false)
             
         } else {
             print("Node are in the same room: \(self.nodeContainedIn)")
@@ -364,21 +322,6 @@ public class PositionProvider: PositionSubject, LocationObserver, @preconcurrenc
             simd_float4(-sinAngle, 0, cosAngle, 0),
             simd_float4(0, 0, 0, 1)
         )
-    }
-    
-    func getRotationAroundY(from orientation: simd_quatf) -> Float {
-    
-        let rotationMatrix = simd_float4x4(orientation)
-
-        let angle = atan2(rotationMatrix[0][2], rotationMatrix[0][0])
-
-        return angle
-    }
-    
-    func getRotationAroundY(from matrix: simd_float4x4) -> Float {
-        // Calcola l'angolo di rotazione attorno all'asse Y utilizzando la matrice 4x4
-        let angle = atan2(matrix[0][2], matrix[0][0])
-        return angle
     }
 
     @available(iOS 16.0, *)
@@ -402,48 +345,41 @@ public class PositionProvider: PositionSubject, LocationObserver, @preconcurrenc
     }
 
     func findPositionContainer(for positionVector: SCNVector3) -> SCNNode? {
-        // Ottieni i nomi delle stanze attive
-        let roomNames = Set(activeFloor.rooms.map { $0.name })
-        print("Room names:", roomNames)
 
-        // Itera sui nodi figli del rootNode
+        let roomNames = Set(activeFloor.rooms.map { $0.name })
+
         for roomNode in scnFloorView.scnView.scene!.rootNode.childNodes {
-            // Controlla se il nodo è un nodo "Floor_" seguito dal nome della stanza
             guard let floorNodeName = roomNode.name,
                   floorNodeName.starts(with: "Floor_"),
-                  let roomName = floorNodeName.split(separator: "_").last, // Estrai il nome della stanza
+                  let roomName = floorNodeName.split(separator: "_").last,
                   roomNames.contains(String(roomName))
             else {
-                print("Error Continue: \(roomNode.name ?? "Unnamed Node")")
                 continue
             }
 
             if let matchingChildNode = roomNode.childNode(withName: String(roomName), recursively: true) {
                 let localPosition = matchingChildNode.convertPosition(positionVector, from: nil)
-
+                
                 if isPositionContained(localPosition, in: matchingChildNode) {
-                    print("Position is contained in room: \(roomName)")
                     return matchingChildNode
                 }
             } else {
                 print("No matching child node found for room: \(roomName)")
             }
         }
-
-        print("ERROR: Position not contained in any room.")
         return nil
     }
     
     private func isPositionContained(_ position: SCNVector3, in node: SCNNode) -> Bool {
-        print("Check in \(node.name)")
+
         guard let geometry = node.geometry else {
             return false
         }
         
         let hitTestOptions: [String: Any] = [
-            SCNHitTestOption.backFaceCulling.rawValue: false,  // Ignora il culling delle facce posteriori
-            SCNHitTestOption.boundingBoxOnly.rawValue: false, // Usa la geometria effettiva
-            SCNHitTestOption.ignoreHiddenNodes.rawValue: false // Non ignora i nodi nascosti
+            SCNHitTestOption.backFaceCulling.rawValue: false,
+            SCNHitTestOption.boundingBoxOnly.rawValue: false,
+            SCNHitTestOption.ignoreHiddenNodes.rawValue: false
         ]
         let rayOrigin = position
         let rayDirection = SCNVector3(0, 0, 1)
